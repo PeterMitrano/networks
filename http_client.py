@@ -1,3 +1,4 @@
+import time
 import getopt
 import sys
 import socket
@@ -53,11 +54,19 @@ if __name__ == "__main__":
             domain = server_url
             url = '/'
 
-        print domain, url
-
         s1 = mysocket()
+        t0 = time.time() # START TIMING
         s1.connect(domain, port)
         get_msg = "GET %s HTTP/1.1\r\nConnection: close\r\nHost: %s\r\n\r\n" % (url, domain)
         s1.mysend(get_msg)
         response = s1.myreceive()
+        t1 = time.time() # END TIMING
+
+        # compute RTT
+        rtt = t1 - t0
+
+        if print_rtt:
+            print "\033[1;94mRTT: %d\033[0m" % rtt
+        t0 = time.time()
+
         print response
