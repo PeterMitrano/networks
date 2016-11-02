@@ -67,6 +67,5 @@ if __name__ == "__main__":
 
         if print_rtt:
             print "\033[1;94mRTT: %d\033[0m" % rtt
-        t0 = time.time()
 
         print response
