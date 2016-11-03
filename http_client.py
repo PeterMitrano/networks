@@ -38,6 +38,18 @@ class mysocket:
             bytes_recd = bytes_recd + len(chunk)
         return ''.join(chunks)
 
+def format_get_request(url="", headers="", body=""):
+    req_line = "GET %s HTTP/1.1\r\n" % url
+
+    headers['Content: Length'] = len(body)
+
+    header_lines = ""
+    for key, value in headers.iteritems():
+        header_lines += "%s: %s\r\n" % (key, value)
+
+    return req_line + header_lines + "\r\n" + body
+
+
 if __name__ == "__main__":
     optlist, args = getopt.getopt(sys.argv[1:], "p")
     if len(args) != 2:
@@ -57,10 +69,16 @@ if __name__ == "__main__":
         s1 = mysocket()
         t0 = time.time() # START TIMING
         s1.connect(domain, port)
-        get_msg = "GET %s HTTP/1.1\r\nConnection: close\r\nHost: %s\r\n\r\n" % (url, domain)
+        headers = {
+            'Connection': 'close',
+            'Host': domain
+        }
+        get_msg = format_get_request(url=url, headers=headers)
+        print get_msg
         s1.mysend(get_msg)
         response = s1.myreceive()
         t1 = time.time() # END TIMING
+        s1.sock.close()
 
         # compute RTT
         rtt = t1 - t0
