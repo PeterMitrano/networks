@@ -1,40 +1,39 @@
+import os
 import re
 import threading
 import sys
 import socket
 import time
 
-def handle_connection(clientsocket, address):
-    # read the request
-    chunks = []
-    bytes_recd = 0
-    bad_request = False
-    i = 0
+statstr = {
+    200: "OK",
+    400: "Bad Request",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Method Not Allowed",
+    411: "Length Required",
+}
 
-    # read until we know the Content-Length
-    end_of_headers = -1
-    request = ''
-    while True:
-        chunk = clientsocket.recv(4)
-        if chunk == '':
-            bad_request = True
-            break;
-        chunks.append(chunk)
-        bytes_recd = bytes_recd + len(chunk)
-
-        request = ''.join(chunks)
-
-        # parse request
-        end_of_headers = request.find("\r\n\r\n")
-        if end_of_headers >= 0:
-            break;
-
+def parse_request(request):
     # parse the request
-    p = re.compile(r'GET (.*) HTTP\/1\.[0|1]\r\n((.*: .*\r\n)*)\r\n')
+    p = re.compile(r'(.*) (.*) HTTP\/1\.[0|1]\r\n((.*: .*\r\n)*)\r\n')
     m = p.match(request)
     if m is not None:
-        url = m.group(1)
-        headers_string = m.group(2)
+        message_type = m.group(1)
+        url = m.group(2)
+        headers_string = m.group(3)
+
+        # message type checking
+        if message_type != "GET":
+            return 405, None
+
+        # check URL
+        url = url[1:] if url[0] == '/' else url
+        if not os.path.exists(url):
+            return 404, None
+
+        if not os.path.isfile(url):
+            return 403, None
 
         p = re.compile(r'(.*): (.*)\r\n')
         header_list = p.findall(headers_string)
@@ -43,15 +42,44 @@ def handle_connection(clientsocket, address):
         for h in header_list:
             headers[h[0]] = h[1]
 
-        print headers
+        body_length = headers.get('Content-Length', -1)
+        # listen for body? Do we have to?
+
+        return 200, url
     else:
-        bad_request = True
+        return 400, None
+
+def handle_connection(clientsocket, address):
+    # read the request
+    chunks = []
+    bytes_recd = 0
+    status = 200
+    i = 0
+
+    # read until we know the Content-Length
+    end_of_headers = -1
+    request = ''
+    while True:
+        chunk = clientsocket.recv(4)
+        if chunk == '':
+            status = 500
+            break
+        chunks.append(chunk)
+        bytes_recd = bytes_recd + len(chunk)
+
+        request = ''.join(chunks)
+
+        # parse request
+        end_of_headers = request.find("\r\n\r\n")
+        if end_of_headers >= 0:
+            break
+
+    status, url = parse_request(request)
 
     # return web page
-    if bad_request:
-
+    if status > 200:
         totalsent = 0
-        msg = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
+        msg = "HTTP/1.1 %i %s\r\nContent-Length: 0\r\n\r\n" % (status, statstr[status])
         while totalsent < len(msg):
             sent = clientsocket.send(msg[totalsent:])
             if sent == 0:
@@ -63,7 +91,7 @@ def handle_connection(clientsocket, address):
         totalsent = 0
 
         msg = "HTTP/1.1 200 OK\r\n\r\n"
-        with open("TMDG.html") as f:
+        with open(url) as f:
             msg += "".join(f.readlines())
 
         while totalsent < len(msg):
