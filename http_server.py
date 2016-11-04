@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import os
 import re
 import threading
@@ -42,11 +41,21 @@ def parse_request(request):
     else:
         return 400, None
 
+def format_response(headers={}, body=""):
+    req_line = "HTTP/1.1 200 OK\r\n"
+
+    headers['Content-Length'] = len(body)
+
+    header_lines = ""
+    for key, value in headers.iteritems():
+        header_lines += "%s: %s\r\n" % (key, value)
+
+    return req_line + header_lines + "\r\n" + body
+
 def handle_connection(clientsocket, address):
     # read the request
     status, request, start_of_body = http_common.read_until_end_of_headers(clientsocket)
-    excess = response[start_of_body:]
-    print repr(excess)
+    excess = request[start_of_body:]
 
     if status == 200:
         status, url = parse_request(request)
@@ -66,9 +75,10 @@ def handle_connection(clientsocket, address):
     else:
         totalsent = 0
 
-        msg = "HTTP/1.1 200 OK\r\n\r\n"
+        body = ""
         with open(url) as f:
-            msg += "".join(f.readlines())
+            body += "".join(f.readlines())
+        msg = format_response(body=body)
 
         while totalsent < len(msg):
             sent = clientsocket.send(msg[totalsent:])

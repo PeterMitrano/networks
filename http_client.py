@@ -20,9 +20,13 @@ def receive(socket):
     # parse out the response line
     p = re.compile(r'HTTP\/1\.[0|1] (\d*) (.*)\r\n((.*: .*\r\n)*)\r\n')
     m = p.match(response)
-    status = m.group(1)
+    status = int(m.group(1))
     message = m.group(2)
     headers_string = m.group(3)
+
+    # check status
+    if status != 200:
+        return "ERROR %d: %s" % (status, message)
 
     # parse headers
     p = re.compile(r'(.*): (.*)\r\n')
@@ -53,7 +57,7 @@ def receive(socket):
         response = ''.join(chunks)
         return response
 
-def format_get_request(url="", headers="", body=""):
+def format_get_request(url="", headers={}, body=""):
     req_line = "GET %s HTTP/1.1\r\n" % url
 
     headers['Content-Length'] = len(body)
