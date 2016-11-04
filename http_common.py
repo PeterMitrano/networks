@@ -9,6 +9,7 @@ statstr = {
     404: "Not Found",
     405: "Method Not Allowed",
     411: "Length Required",
+    418: "I'm a Teapot",
 }
 
 def read_until_end_of_headers(socket):

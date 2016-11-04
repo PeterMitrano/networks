@@ -39,7 +39,11 @@ def parse_request(request):
             headers[h[0]] = h[1]
 
         body_length = headers.get('Content-Length', -1)
-        # listen for body? Do we have to?
+        brew_coffee = headers.get('Brew-Coffee', False)
+
+        if brew_coffee:
+            return 418, None
+        # TODO: listen for body? Do we have to?
 
         return 200, url
     else:
