@@ -20,7 +20,11 @@ def parse_request(request):
             return 405, None
 
         # check URL
-        url = url[1:] if url[0] == '/' else url
+        if url[0] == '/':
+            url = url[1:]
+        else:
+            url = url
+
         if not os.path.exists(url):
             return 404, None
 
@@ -76,8 +80,8 @@ def handle_connection(clientsocket, address):
         totalsent = 0
 
         body = ""
-        with open(url) as f:
-            body += "".join(f.readlines())
+        f = open(url, 'r')
+        body += "".join(f.readlines())
         msg = format_response(body=body)
 
         while totalsent < len(msg):

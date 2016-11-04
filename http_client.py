@@ -90,11 +90,15 @@ def format_get_request(url="", headers={}, body=""):
 
 
 if __name__ == "__main__":
-    optlist, args = getopt.getopt(sys.argv[1:], "p")
+    optlist, args = getopt.getopt(sys.argv[1:], "px")
     if len(args) != 2:
-        print "Usage: python http_client.py [-p] server_url port_number"
+        print "Usage: python http_client.py [-p] [-x] server_url port_number"
+        print "    -p print RTT"
+        print "    -x don't print the response (webpage)"
     else:
-        print_rtt = len(optlist) > 0
+        print_response = ('-x', '') not in optlist
+        print_rtt = ('-p', '') in optlist
+
         server_url = args[0]
         port = int(args[1])
 
@@ -131,4 +135,5 @@ if __name__ == "__main__":
         if print_rtt:
             print "\033[1;94mRTT: %d\033[0m" % rtt
 
-        print response
+        if print_response:
+                print response
