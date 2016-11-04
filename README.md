@@ -1,4 +1,16 @@
-## networks projects
+## Testing Instructions
+
+### examples of server:
+python http_server.py 25546
+
+### examples of client:
+python http_client.py gnu.org 80 # response is 301 moved
+python http_client.py www.cnn.com 80 # response is 200 OK and webpage
+python http_client.py www.ccwork3.com/TMDG.html 25546 # response is 200 OK and webpage
+
+
+## Easter egg!:
+curl -v -H "Brew-Coffee: True" localhost:25546/TMDG.html # response is 418 I'm a teapot
 
 ## HTTP Client RTT Results
 
