@@ -1,18 +1,11 @@
+from __future__ import unicode_literals
 import os
 import re
 import threading
 import sys
 import socket
 import time
-
-statstr = {
-    200: "OK",
-    400: "Bad Request",
-    403: "Forbidden",
-    404: "Not Found",
-    405: "Method Not Allowed",
-    411: "Length Required",
-}
+import http_common
 
 def parse_request(request):
     # parse the request
@@ -51,35 +44,18 @@ def parse_request(request):
 
 def handle_connection(clientsocket, address):
     # read the request
-    chunks = []
-    bytes_recd = 0
-    status = 200
-    i = 0
+    status, request, start_of_body = http_common.read_until_end_of_headers(clientsocket)
+    excess = response[start_of_body:]
+    print repr(excess)
 
-    # read until we know the Content-Length
-    end_of_headers = -1
-    request = ''
-    while True:
-        chunk = clientsocket.recv(4)
-        if chunk == '':
-            status = 500
-            break
-        chunks.append(chunk)
-        bytes_recd = bytes_recd + len(chunk)
-
-        request = ''.join(chunks)
-
-        # parse request
-        end_of_headers = request.find("\r\n\r\n")
-        if end_of_headers >= 0:
-            break
-
-    status, url = parse_request(request)
+    if status == 200:
+        status, url = parse_request(request)
 
     # return web page
     if status > 200:
         totalsent = 0
-        msg = "HTTP/1.1 %i %s\r\nContent-Length: 0\r\n\r\n" % (status, statstr[status])
+        msg = "HTTP/1.1 %i %s\r\nContent-Length: 0\r\n\r\n" \
+                    % (status, http_common.statstr[status])
         while totalsent < len(msg):
             sent = clientsocket.send(msg[totalsent:])
             if sent == 0:

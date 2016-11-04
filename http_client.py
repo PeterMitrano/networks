@@ -1,47 +1,62 @@
+import re
 import time
 import getopt
 import sys
 import socket
+import http_common
 
-class mysocket:
-    '''demonstration class only
-      - coded for clarity, not efficiency
-    '''
+def send(socket, msg):
+    totalsent = 0
+    while totalsent < len(msg):
+        sent = socket.send(msg[totalsent:])
+        if sent == 0:
+            raise RuntimeError("socket connection broken")
+        totalsent = totalsent + sent
 
-    def __init__(self, sock=None):
-        if sock is None:
-            self.sock = socket.socket(
-                socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.sock = sock
+def receive(socket):
+    status, response, start_of_body = http_common.read_until_end_of_headers(socket)
+    body = response[start_of_body:]
 
-    def connect(self, host, port):
-        self.sock.connect((host, port))
+    # parse out the response line
+    p = re.compile(r'HTTP\/1\.[0|1] (\d*) (.*)\r\n((.*: .*\r\n)*)\r\n')
+    m = p.match(response)
+    status = m.group(1)
+    message = m.group(2)
+    headers_string = m.group(3)
 
-    def mysend(self, msg):
-        totalsent = 0
-        while totalsent < len(msg):
-            sent = self.sock.send(msg[totalsent:])
-            if sent == 0:
-                raise RuntimeError("socket connection broken")
-            totalsent = totalsent + sent
+    # parse headers
+    p = re.compile(r'(.*): (.*)\r\n')
+    header_list = p.findall(headers_string)
 
-    def myreceive(self):
-        chunks = []
-        bytes_recd = 0
-        i = 0
-        while True:
-            chunk = self.sock.recv(256)
+    headers = {}
+    for h in header_list:
+        headers[h[0]] = h[1]
+
+    # 4.5.5 says chunked is checked first
+    if headers.get('Transfer-Encoding', None) == "chunked":
+        # read body as chunked
+        print "chunky!"
+        chunk = socket.recv(256)
+        print repr(body + chunk)
+    elif 'Content-Length' in headers:
+        # read body until specified length
+        chunks = [body]
+        bytes_recd = len(body)
+        while bytes_recd < headers['Content-Length']:
+            chunk = socket.recv(256)
             if chunk == '':
+                # socket closed by server
                 break;
             chunks.append(chunk)
-            bytes_recd = bytes_recd + len(chunk)
-        return ''.join(chunks)
+            bytes_recd += + len(chunk)
+
+        response = ''.join(chunks)
+        return response
 
 def format_get_request(url="", headers="", body=""):
     req_line = "GET %s HTTP/1.1\r\n" % url
 
-    headers['Content: Length'] = len(body)
+    headers['Content-Length'] = len(body)
 
     header_lines = ""
     for key, value in headers.iteritems():
@@ -66,19 +81,25 @@ if __name__ == "__main__":
             domain = server_url
             url = '/'
 
-        s1 = mysocket()
-        t0 = time.time() # START TIMING
-        s1.connect(domain, port)
+        s1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
         headers = {
             'Connection': 'close',
             'Host': domain
         }
+
+        t0 = time.time() * 1000.0 # START TIMING
+
+        s1.connect((domain, port))
         get_msg = format_get_request(url=url, headers=headers)
-        print get_msg
-        s1.mysend(get_msg)
-        response = s1.myreceive()
-        t1 = time.time() # END TIMING
-        s1.sock.close()
+
+        # send and recieve
+        send(s1, get_msg)
+        response = receive(s1)
+
+        s1.close()
+
+        t1 = time.time() * 1000.0 # END TIMING
 
         # compute RTT
         rtt = t1 - t0
