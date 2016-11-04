@@ -26,7 +26,8 @@ def receive(socket):
 
     # check status
     if status != 200:
-        return "ERROR %d: %s" % (status, message)
+        #return "ERROR %d: %s" % (status, message)
+        return response
 
     # parse headers
     p = re.compile(r'(.*): (.*)\r\n')
@@ -39,15 +40,34 @@ def receive(socket):
     # 4.5.5 says chunked is checked first
     if headers.get('Transfer-Encoding', None) == "chunked":
         # read body as chunked
-        print "chunky!"
-        chunk = socket.recv(256)
-        print repr(body + chunk)
+        chunks = []
+        end_of_last_buffer = body
+        i = 0
+        raw = ""
+
+        # read until we find the special end chunk
+        while True:
+            i += 1
+            x = socket.recv(http_common.BUFFER_SIZE)
+            raw += x
+            if '\r\n0\r\n' in x:
+                break
+
+        chunks = []
+        for i, chunk in enumerate(raw.split('\r\n')):
+            if i % 2 == 1:
+                chunks.append(chunk)
+
+        response = ''.join(chunks)
+        return response
+
     elif 'Content-Length' in headers:
         # read body until specified length
         chunks = [body]
         bytes_recd = len(body)
         while bytes_recd < headers['Content-Length']:
-            chunk = socket.recv(256)
+            chunk = socket.recv(http_common.BUFFER_SIZE)
+
             if chunk == '':
                 # socket closed by server
                 break;

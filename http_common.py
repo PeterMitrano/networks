@@ -1,5 +1,7 @@
 import socket
 
+BUFFER_SIZE = 128
+
 statstr = {
     200: "OK",
     400: "Bad Request",
