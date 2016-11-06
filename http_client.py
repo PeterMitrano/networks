@@ -27,7 +27,7 @@ def receive(socket):
     # check status
     if status != 200:
         #return "ERROR %d: %s" % (status, message)
-        return response
+        return response[:start_of_body]
 
     # parse headers
     p = re.compile(r'(.*): (.*)\r\n')
