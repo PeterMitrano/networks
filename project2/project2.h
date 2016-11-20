@@ -4,7 +4,7 @@
  */
 
 /* ***************************************************************************
- ALTERNATING BIT AND GO-BACK-N NETWORK EMULATOR: 
+ ALTERNATING BIT AND GO-BACK-N NETWORK EMULATOR:
 
    This code should be used for Project 3, unidirectional or bidirectional
    data transfer protocols from A to B and B to A.
@@ -21,8 +21,8 @@
  VERSION 2.20 J. Breecher  - October  2013
 *****************************************************************************/
 
-// #define   LINUX
-#define    WINDOWS
+#define   LINUX
+//#define    WINDOWS
 
 #define  TRUE            1
 #define  FALSE           0
@@ -30,9 +30,9 @@
 #define  AEntity         0
 #define  BEntity         1
 
-// A "msg" is the data unit passed from layer 5 (Application code) to layer 
-// 4 (student's code).  It contains the data (characters) to be delivered 
-// to the remote layer 5 via the students transport level protocol entities.  
+// A "msg" is the data unit passed from layer 5 (Application code) to layer
+// 4 (student's code).  It contains the data (characters) to be delivered
+// to the remote layer 5 via the students transport level protocol entities.
 
 #define  MESSAGE_LENGTH  20
 struct msg {
@@ -41,8 +41,8 @@ struct msg {
 
 // A packet is the data unit passed from layer 4 (student's Transport Layer
 // code) to layer 3 (the network simulator).  Note this is the pre-defined
-// packet structure, that is expected by layer 3 - so student code must 
-// match this format.        
+// packet structure, that is expected by layer 3 - so student code must
+// match this format.
 struct   pkt {
     int  seqnum;
     int  acknum;
@@ -71,17 +71,17 @@ void B_init();                      // Simulator calls this at initialization
  * */
 
 /*
- * format:  startTimer(calling_entity, increment), 
+ * format:  startTimer(calling_entity, increment),
  * 1st argument: calling_entity is either AENTITY or BENTITY
- * 2nd argument: increment is a double value indicating the amount of time 
- * that will pass before the timer interrupts. 
- * A's timer should only be started (or stopped) by A-side routines, 
- * and similarly for the B-side timer. 
+ * 2nd argument: increment is a double value indicating the amount of time
+ * that will pass before the timer interrupts.
+ * A's timer should only be started (or stopped) by A-side routines,
+ * and similarly for the B-side timer.
  */
 void startTimer(int AorB, double increment);
 
 /*
- * stopTimer(calling_entity), 
+ * stopTimer(calling_entity),
  * 1st argument: calling_entity is either AENTITY or BENTITY
  */
 void stopTimer( int AorB );
@@ -94,25 +94,25 @@ void stopTimer( int AorB );
 double  getClockTime( );
 
 /*
- * tolayer3( calling_entity, packet). 
+ * tolayer3( calling_entity, packet).
  * 1st argument: calling_entity is either AENTITY or BENTITY
- * 2nd argument: packet is a structure of type pkt. 
- * Calling this routine will cause the packet to be sent into the network, 
+ * 2nd argument: packet is a structure of type pkt.
+ * Calling this routine will cause the packet to be sent into the network,
  * destined for the other entity.
  */
 void tolayer3( int  AorB, struct pkt packet );
 
 /*
  * Send message from your transport later to the application layer.
- * tolayer5( calling_entity, message). 
+ * tolayer5( calling_entity, message).
  * 1st argument: calling_entity is either AENTITY or BENTITY
- * 2nd argument: message is a structure of type msg. 
+ * 2nd argument: message is a structure of type msg.
  *
  */
 void tolayer5( int AorB, struct msg datasent);
 
 /*
- * getTimerStatus( calling_entity), 
+ * getTimerStatus( calling_entity),
  * 1st argument: calling_entity is either AENTITY or BENTITY
  *
  * Returns the current state of the timer - TRUE if running, FALSE if not
