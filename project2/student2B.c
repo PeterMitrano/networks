@@ -6,6 +6,8 @@
 
 #define BENTITY 1
 
+int alternating_bit;
+
 /*
  * B_input(packet),where packet is a structure of type pkt. This routine
  * will be called whenever a packet sent from the A-side (i.e., as a result
@@ -16,9 +18,7 @@ void B_input(struct pkt packet) {
 
   // deliver the data to app layer
   // but only if it's not fucked
-  struct pkt packet_zeroed_checksum = packet;
-  packet_zeroed_checksum.checksum = 0;
-  if (verify_checksum(packet_zeroed_checksum, packet.checksum)) {
+  if (verify_checksum(packet) && packet.seqnum == alternating_bit) {
     struct msg message;
     memcpy(message.data, packet.payload, MESSAGE_LENGTH);
     tolayer5(BENTITY, message);
@@ -28,6 +28,8 @@ void B_input(struct pkt packet) {
     ack.acknum = packet.seqnum;
     ack.seqnum = 1;
     tolayer3(BENTITY, ack);
+
+    alternating_bit = 1 - alternating_bit;
   }
   else {
     // send a NAK
@@ -53,6 +55,7 @@ void  B_timerinterrupt() {
  * entity B routines are called. You can use it to do any initialization
  */
 void B_init() {
+  alternating_bit = 0;
 }
 
 

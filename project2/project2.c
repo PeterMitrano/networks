@@ -37,6 +37,9 @@ VERSIONS:
 #ifdef WINDOWS
     #include <windows.h>
 #endif
+#ifdef LINUX
+  #include <sys/time.h>
+#endif
 
 
 /* ***************************************************************************
@@ -142,145 +145,145 @@ int main( int argc, char *argv[] )     {
       event header.  We analyze the action to be performed and go do it.
     *************************************************************************/
     while (TRUE) {
-        eventptr = evlist;        // get next event to simulate from Q head
-        if (eventptr==NULL) {     //  IF nothing to simulate, we're done
-            if ( TraceLevel >= 5 )  printf("Nothing left to trace\n");
-            break;
-	}
+      eventptr = evlist;        // get next event to simulate from Q head
+      if (eventptr==NULL) {     //  IF nothing to simulate, we're done
+        if ( TraceLevel >= 5 )  printf("Nothing left to trace\n");
+        break;
+      }
 
-        evlist = evlist->next;    // remove this event from event list
-        if (evlist != NULL)       //   and sort out forward and back ptrs
-            evlist->prev=NULL;
+      evlist = evlist->next;    // remove this event from event list
+      if (evlist != NULL)       //   and sort out forward and back ptrs
+        evlist->prev=NULL;
 
-        // Update simulation time to event time  - by definition, the
-        // simulation time is the time of the last event.
-        CurrentSimTime = eventptr->evtime;
-        currentEntity = eventptr->eventity;
-        // If we've delivered the required number of messages, then we've
-        // fullfilled our task and are done.
-        if ( NumMsgs4To5 >= MaxMsgsToSimulate )  {
-            if ( TraceLevel >= 5 )  printf("Messages have been completed\n");
-            break;                            // all done with simulation
-	}
+      // Update simulation time to event time  - by definition, the
+      // simulation time is the time of the last event.
+      CurrentSimTime = eventptr->evtime;
+      currentEntity = eventptr->eventity;
+      // If we've delivered the required number of messages, then we've
+      // fullfilled our task and are done.
+      if ( NumMsgs4To5 >= MaxMsgsToSimulate )  {
+        if ( TraceLevel >= 5 )  printf("Messages have been completed\n");
+        break;                            // all done with simulation
+      }
 
-	// Print out what's on the Q
-        if ( ( NumMsgs4To5 + 1 ) % (MaxMsgsToSimulate / 3) == 0 )
-            printEntireEventQ ( );
-        if ( TraceLevel >= 5 )    // WIth large trace level, print every time
-            printEntireEventQ ( );
+      // Print out what's on the Q
+      if ( ( NumMsgs4To5 + 1 ) % (MaxMsgsToSimulate / 3) == 0 )
+        printEntireEventQ ( );
+      if ( TraceLevel >= 5 )    // WIth large trace level, print every time
+        printEntireEventQ ( );
 
-        /* *******************************************************************
-          Here we've gotten a request to hand data from layer 5 to layer 4.
-            Generate the date we want to give to the student.
-        *********************************************************************/
-        if ( eventptr->evtype == FROM_LAYER5 ) {
-            // Use the sequence number as starter for the message string
-            j = GeneratingSeqNum[currentEntity]++;
-            // printf( "%X  %d %d\n", &eventptr, currentEntity, j );
-            GetMessageString( currentEntity, j, &(msg2give.data[0]) );
-            /*  Always print trace so we know it matches the receive  */
-            if ( TraceLevel >= 0 )  {
-                //printf("%c: ", &(EntityLetter[currentEntity]) );
-                if ( currentEntity == AEntity )
-                    printf("A: " );
-                else
-                    printf("B: " );
-                printf(" %11.4f,", eventptr->evtime);
+      /* *******************************************************************
+         Here we've gotten a request to hand data from layer 5 to layer 4.
+         Generate the date we want to give to the student.
+       *********************************************************************/
+      if ( eventptr->evtype == FROM_LAYER5 ) {
+        // Use the sequence number as starter for the message string
+        j = GeneratingSeqNum[currentEntity]++;
+        // printf( "%X  %d %d\n", &eventptr, currentEntity, j );
+        GetMessageString( currentEntity, j, &(msg2give.data[0]) );
+        /*  Always print trace so we know it matches the receive  */
+        if ( TraceLevel >= 0 )  {
+          //printf("%c: ", &(EntityLetter[currentEntity]) );
+          if ( currentEntity == AEntity )
+            printf("A: " );
+          else
+            printf("B: " );
+          printf(" %11.4f,", eventptr->evtime);
 
-                printf("  Layer 5 to 4  Message = ");
-                for (i=0; i<MESSAGE_LENGTH; i++)
-                    printf("%c", msg2give.data[i]);
-                printf("\n");
-            }
-            // The simulation will actually end when the requested number of
-            // messages has been received back at layer 5.  But there could be
-            // many packets in the system, and that total arrival could take
-            // a long time.  We want to make sure we down't overwhelm the
-            // student code with messages that won't ever be delivered anyway.
-            //
-            if ( NumMsgs5To4 <= MaxMsgsToSimulate + 3 ) {
-                GenerateNextArrival();           // set up future arrival
-                NumMsgs5To4++;                   // # msgs from layer 5 to 4
-            }
-            if ( currentEntity == AEntity )  // Pass the data to layer 4 here
-                A_output(msg2give);
-            else
-                B_output(msg2give);
-        }                              /* END of event is from layer 5 */
-
-        /* *******************************************************************
-          This is a request to hand data from layer 3 up to student layer 4
-        *********************************************************************/
-        else if (eventptr->evtype ==  FROM_LAYER3 ) {
-            pkt2give.seqnum   = eventptr->pktptr->seqnum;
-            pkt2give.acknum   = eventptr->pktptr->acknum;
-            pkt2give.checksum = eventptr->pktptr->checksum;
-            for ( i = 0; i < MESSAGE_LENGTH; i++)
-                pkt2give.payload[i] = eventptr->pktptr->payload[i];
-
-            if ( TraceLevel >= 5 )  {     /* Print out trace info if requested */
-                if ( eventptr->eventity == AEntity )
-                    printf("A: " );
-                else
-                    printf("B: " );
-                printf(" %11.4f,", eventptr->evtime);
-
-                printf("  Layer 3 to 4  ");
-                printf( "Seq/Ack/Check = %d/%d/%d:  ",
-                        eventptr->pktptr->seqnum, eventptr->pktptr->acknum,
-                        eventptr->pktptr->checksum );
-                for (i=0; i<MESSAGE_LENGTH; i++)
-                    printf("%c", eventptr->pktptr->payload[i] );
-                printf("\n");
-            }
-            if (eventptr->eventity == AEntity)   /* deliver packet by calling */
-                   A_input(pkt2give);            /* appropriate entity */
-            else
-                   B_input(pkt2give);
-            free(eventptr->pktptr);          /* free the memory for packet */
-        }                             /* END of event is from layer 3 */
-
-        /* *******************************************************************
-              This is a request for a timer interrupt
-        *********************************************************************/
-        else if (eventptr->evtype ==  TIMER_INTERRUPT) {
-            if ( TraceLevel >= 5 )  {     /* Print out trace info if requested */
-                if ( eventptr->eventity == AEntity )
-                    printf("A: " );
-                else
-                    printf("B: " );
-                printf(" %f,", eventptr->evtime);
-                printf("  Timer Interrupt\n");
-            }
-            if (eventptr->eventity == AEntity)
-                A_timerinterrupt();
-            else
-                B_timerinterrupt();
-        }                             /* END of event is interrupt request */
-        else  {
-            printf("INTERNAL PANIC: unknown event type \n");
+          printf("  Layer 5 to 4  Message = ");
+          for (i=0; i<MESSAGE_LENGTH; i++)
+            printf("%c", msg2give.data[i]);
+          printf("\n");
         }
-        free(eventptr);
+        // The simulation will actually end when the requested number of
+        // messages has been received back at layer 5.  But there could be
+        // many packets in the system, and that total arrival could take
+        // a long time.  We want to make sure we down't overwhelm the
+        // student code with messages that won't ever be delivered anyway.
+        //
+        if ( NumMsgs5To4 <= MaxMsgsToSimulate + 3 ) {
+          GenerateNextArrival();           // set up future arrival
+          NumMsgs5To4++;                   // # msgs from layer 5 to 4
+        }
+        if ( currentEntity == AEntity )  // Pass the data to layer 4 here
+          A_output(msg2give);
+        else
+          B_output(msg2give);
+      }                              /* END of event is from layer 5 */
+
+      /* *******************************************************************
+         This is a request to hand data from layer 3 up to student layer 4
+       *********************************************************************/
+      else if (eventptr->evtype ==  FROM_LAYER3 ) {
+        pkt2give.seqnum   = eventptr->pktptr->seqnum;
+        pkt2give.acknum   = eventptr->pktptr->acknum;
+        pkt2give.checksum = eventptr->pktptr->checksum;
+        for ( i = 0; i < MESSAGE_LENGTH; i++)
+          pkt2give.payload[i] = eventptr->pktptr->payload[i];
+
+        if ( TraceLevel >= 5 )  {     /* Print out trace info if requested */
+          if ( eventptr->eventity == AEntity )
+            printf("A: " );
+          else
+            printf("B: " );
+          printf(" %11.4f,", eventptr->evtime);
+
+          printf("  Layer 3 to 4  ");
+          printf( "Seq/Ack/Check = %d/%d/%d:  ",
+              eventptr->pktptr->seqnum, eventptr->pktptr->acknum,
+              eventptr->pktptr->checksum );
+          for (i=0; i<MESSAGE_LENGTH; i++)
+            printf("%c", eventptr->pktptr->payload[i] );
+          printf("\n");
+        }
+        if (eventptr->eventity == AEntity)   /* deliver packet by calling */
+          A_input(pkt2give);            /* appropriate entity */
+        else
+          B_input(pkt2give);
+        free(eventptr->pktptr);          /* free the memory for packet */
+      }                             /* END of event is from layer 3 */
+
+      /* *******************************************************************
+         This is a request for a timer interrupt
+       *********************************************************************/
+      else if (eventptr->evtype ==  TIMER_INTERRUPT) {
+        if ( TraceLevel >= 5 )  {     /* Print out trace info if requested */
+          if ( eventptr->eventity == AEntity )
+            printf("A: " );
+          else
+            printf("B: " );
+          printf(" %f,", eventptr->evtime);
+          printf("  Timer Interrupt\n");
+        }
+        if (eventptr->eventity == AEntity)
+          A_timerinterrupt();
+        else
+          B_timerinterrupt();
+      }                             /* END of event is interrupt request */
+      else  {
+        printf("INTERNAL PANIC: unknown event type \n");
+      }
+      free(eventptr);
     }                       // End of while
 
     printf("\n\nSimulator terminated at time %f\n after receiving %d msgs at layer5\n",
-                  CurrentSimTime, NumMsgs4To5 );
+        CurrentSimTime, NumMsgs4To5 );
     printf( "Simulator Analysis:\n");
     printf( "  Number of messages sent from 5 to 4: %d\n", NumMsgs5To4 );
     printf( "  Number of messages received at Layer 5, side A: %d\n",
-                  ExpectedSeqNum[0]  );
+        ExpectedSeqNum[0]  );
     printf( "  Number of messages received at Layer 5, side B: %d\n",
-                  ExpectedSeqNum[1]  );
+        ExpectedSeqNum[1]  );
     printf( "  Number of messages incorrectly received at layer 5: %d\n",
-                  NumMsgs5To4WithErr );
+        NumMsgs5To4WithErr );
     printf( "  Number of packets entering the network: %d\n", NumMsgs4To3 );
     printf( "  Average number of packets already in network: %9.3f\n",
-               (double)NumSimultaneousMsgs /  (double)NumMsgs4To3 );
+        (double)NumSimultaneousMsgs /  (double)NumMsgs4To3 );
     printf( "  Number of packets that the network lost: %d\n", NumMsgsLost );
     printf( "  Number of packets that the network corrupted: %d\n",
-                   NumMsgsCorrupt );
+        NumMsgsCorrupt );
     printf( "  Number of packets that the network put out of order: %d\n",
-                   NumMsgsOutOfOrder );
+        NumMsgsOutOfOrder );
     return 0;
 }
 
