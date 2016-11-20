@@ -14,6 +14,7 @@ def parse_request(request):
         message_type = m.group(1)
         url = m.group(2)
         headers_string = m.group(3)
+        print "url [%s] requested" % url
 
         # message type checking
         if message_type != "GET":

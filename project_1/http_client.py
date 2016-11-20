@@ -77,6 +77,10 @@ def receive(socket):
         response = ''.join(chunks)
         return response
 
+    else:
+        return "Invalid response, client did not give either chunked or content length"
+
+
 def format_get_request(url="", headers={}, body=""):
     req_line = "GET %s HTTP/1.1\r\n" % url
 
