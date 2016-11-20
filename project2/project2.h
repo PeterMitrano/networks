@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * This is the include file that contains definitions of various structures.
  * It also contains prototypes needed by the routines in the student code.

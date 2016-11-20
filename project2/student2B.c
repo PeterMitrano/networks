@@ -1,6 +1,10 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include "project2.h"
+#include "student2_common.h"
+
+#define BENTITY 1
 
 /*
  * B_input(packet),where packet is a structure of type pkt. This routine
@@ -9,6 +13,30 @@
  * packet is the (possibly corrupted) packet sent from the A-side.
  */
 void B_input(struct pkt packet) {
+
+  // deliver the data to app layer
+  // but only if it's not fucked
+  struct pkt packet_zeroed_checksum = packet;
+  packet_zeroed_checksum.checksum = 0;
+  if (verify_checksum(packet_zeroed_checksum, packet.checksum)) {
+    struct msg message;
+    memcpy(message.data, packet.payload, MESSAGE_LENGTH);
+    tolayer5(BENTITY, message);
+
+    // send an ACK in response
+    struct pkt ack;
+    ack.acknum = packet.seqnum;
+    ack.seqnum = 1;
+    tolayer3(BENTITY, ack);
+  }
+  else {
+    // send a NAK
+    // use -1 seq num to indicate nak
+    struct pkt nak;
+    nak.acknum = packet.seqnum;
+    nak.seqnum = -1;
+    tolayer3(BENTITY, nak);
+  }
 }
 
 /*
@@ -28,3 +56,5 @@ void B_init() {
 }
 
 
+// UNUSED IN THIS PROJECT
+void B_output(struct msg message) {}
