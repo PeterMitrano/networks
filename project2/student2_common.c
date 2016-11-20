@@ -15,7 +15,12 @@ bool verify_checksum(struct pkt packet) {
   packet.checksum = 0;
   char *raw_packet = (char *) &packet;
   uint32_t crc = crc32(0, raw_packet, sizeof(struct pkt));
-  return (crc == checksum);
+  if (crc == checksum) {
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
 void queue_new(struct queue *q) {

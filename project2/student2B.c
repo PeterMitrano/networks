@@ -6,7 +6,9 @@
 
 #define BENTITY 1
 
-int alternating_bit;
+struct B_data {
+  int alternating_bit;
+} B;
 
 /*
  * B_input(packet),where packet is a structure of type pkt. This routine
@@ -18,8 +20,9 @@ void B_input(struct pkt packet) {
 
   // deliver the data to app layer
   // but only if it's not fucked
-  if (verify_checksum(packet) && packet.seqnum == alternating_bit) {
+  if (verify_checksum(packet) && packet.seqnum == B.alternating_bit) {
     struct msg message;
+    printf(GRN "Delivering correct data: %i\n" RESET, packet.seqnum);
     memcpy(message.data, packet.payload, MESSAGE_LENGTH);
     tolayer5(BENTITY, message);
 
@@ -27,9 +30,11 @@ void B_input(struct pkt packet) {
     struct pkt ack;
     ack.acknum = packet.seqnum;
     ack.seqnum = 1;
+    ack.checksum = 0;
+    ack.checksum = compute_checksum(ack);
     tolayer3(BENTITY, ack);
 
-    alternating_bit = 1 - alternating_bit;
+    B.alternating_bit = 1 - B.alternating_bit;
   }
   else {
     // send a NAK
@@ -55,7 +60,7 @@ void  B_timerinterrupt() {
  * entity B routines are called. You can use it to do any initialization
  */
 void B_init() {
-  alternating_bit = 0;
+  B.alternating_bit = 0;
 }
 
 

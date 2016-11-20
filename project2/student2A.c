@@ -7,12 +7,14 @@
 #include "student2_common.h"
 
 #define AENTITY 0
-int alternating_bit;
 
-struct pkt unacked_packet;
-bool valid_unacked_packet;
+struct A_data {
+  int alternating_bit;
+  struct pkt unacked_packet;
+  bool valid_unacked_packet;
+  struct queue packet_queue;
+} A;
 
-struct queue packet_queue;
 
 /*
  * A_input(packet), where packet is a structure of type pkt. This routine
@@ -22,22 +24,22 @@ struct queue packet_queue;
  */
 void A_input(struct pkt packet) {
   if (verify_checksum(packet)) {
-    tolayer3(AENTITY, unacked_packet);
+    tolayer3(AENTITY, A.unacked_packet);
     printf(RED "CORRUPT. %i\n" RESET, packet.acknum);
   }
-  else if (packet.acknum != alternating_bit) {
-    tolayer3(AENTITY, unacked_packet);
+  else if (packet.acknum != A.alternating_bit) {
+    tolayer3(AENTITY, A.unacked_packet);
     printf(RED "Wrong ACK. %i\n" RESET, packet.acknum);
   }
   else if (packet.seqnum == -1) { // NAK, retransmit
-    tolayer3(AENTITY, unacked_packet);
+    tolayer3(AENTITY, A.unacked_packet);
     printf(RED "NAK. %i\n" RESET, packet.acknum);
   }
   else if (packet.seqnum == 1) {
     //nah we good
     printf(GRN "ACK %i\n" RESET, packet.acknum);
     struct pkt pkt;
-    dequeue(&packet_queue, &pkt);
+    dequeue(&A.packet_queue, &pkt);
   }
 }
 
@@ -52,22 +54,23 @@ void A_input(struct pkt packet) {
 void A_output(struct msg message) {
   struct pkt unacked_packet;
   memcpy(unacked_packet.payload, message.data, MESSAGE_LENGTH);
-  unacked_packet.seqnum = alternating_bit;
+  unacked_packet.seqnum = A.alternating_bit;
+  unacked_packet.acknum = 0;
   unacked_packet.checksum = 0;
   unacked_packet.checksum = compute_checksum(unacked_packet);
 
-  valid_unacked_packet = true;
+  A.valid_unacked_packet = true;
 
-  if (queue_empty(packet_queue)) {
+  if (queue_empty(A.packet_queue)) {
     // send the data to the network
     tolayer3(AENTITY, unacked_packet);
   }
   else {
-    enqueue(&packet_queue, unacked_packet);
+    enqueue(&A.packet_queue, unacked_packet);
   }
 
   // flip from 1 to 0
-  alternating_bit = 1 - alternating_bit;
+  A.alternating_bit = 1 - A.alternating_bit;
 }
 
 /*
@@ -83,7 +86,7 @@ void A_timerinterrupt() {
 /* The following routine will be called once (only) before any other    */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init() {
-  valid_unacked_packet = false;
-  alternating_bit = true;
-  queue_new(&packet_queue);
+  A.valid_unacked_packet = false;
+  A.alternating_bit = 0;
+  queue_new(&A.packet_queue);
 }
