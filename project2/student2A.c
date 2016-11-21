@@ -23,9 +23,9 @@ struct A_data {
  * packet is the (possibly corrupted) packet sent from the B-side.
  */
 void A_input(struct pkt packet) {
-  if (verify_checksum(packet)) {
+  if (!verify_checksum(packet)) {
     tolayer3(AENTITY, A.unacked_packet);
-    printf(RED "CORRUPT. %i\n" RESET, packet.acknum);
+    printf(RED "CORRUPT ACK/NAK. %i\n" RESET, packet.acknum);
   }
   else if (packet.acknum != A.alternating_bit) {
     tolayer3(AENTITY, A.unacked_packet);
@@ -40,6 +40,9 @@ void A_input(struct pkt packet) {
     printf(GRN "ACK %i\n" RESET, packet.acknum);
     struct pkt pkt;
     dequeue(&A.packet_queue, &pkt);
+
+    // flip from 1 to 0
+    A.alternating_bit = 1 - A.alternating_bit;
   }
 }
 
@@ -65,12 +68,7 @@ void A_output(struct msg message) {
     // send the data to the network
     tolayer3(AENTITY, unacked_packet);
   }
-  else {
-    enqueue(&A.packet_queue, unacked_packet);
-  }
-
-  // flip from 1 to 0
-  A.alternating_bit = 1 - A.alternating_bit;
+  enqueue(&A.packet_queue, unacked_packet);
 }
 
 /*

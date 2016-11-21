@@ -20,7 +20,23 @@ void B_input(struct pkt packet) {
 
   // deliver the data to app layer
   // but only if it's not fucked
-  if (verify_checksum(packet) && packet.seqnum == B.alternating_bit) {
+  if (!verify_checksum(packet)) {
+    // send a NAK
+    printf(RED "CORRUPT PKT. %i\n" RESET, packet.acknum);
+    struct pkt nak;
+    nak.acknum = packet.seqnum;
+    nak.seqnum = -1;
+    tolayer3(BENTITY, nak);
+  }
+  else if (packet.seqnum != B.alternating_bit) {
+    // use -1 seq num to indicate nak
+    printf(RED "Wrong PKT. %i\n" RESET, packet.acknum);
+    struct pkt nak;
+    nak.acknum = packet.seqnum;
+    nak.seqnum = -1;
+    tolayer3(BENTITY, nak);
+  }
+  else {
     struct msg message;
     printf(GRN "Delivering correct data: %i\n" RESET, packet.seqnum);
     memcpy(message.data, packet.payload, MESSAGE_LENGTH);
@@ -35,14 +51,6 @@ void B_input(struct pkt packet) {
     tolayer3(BENTITY, ack);
 
     B.alternating_bit = 1 - B.alternating_bit;
-  }
-  else {
-    // send a NAK
-    // use -1 seq num to indicate nak
-    struct pkt nak;
-    nak.acknum = packet.seqnum;
-    nak.seqnum = -1;
-    tolayer3(BENTITY, nak);
   }
 }
 
