@@ -167,10 +167,12 @@ int main( int argc, char *argv[] )     {
       }
 
       // Print out what's on the Q
-      if ( ( NumMsgs4To5 + 1 ) % (MaxMsgsToSimulate / 3) == 0 )
-        printEntireEventQ ( );
-      if ( TraceLevel >= 5 )    // WIth large trace level, print every time
-        printEntireEventQ ( );
+      if ( TraceLevel >= 5 ) {   // WIth large trace level, print every time
+        printEntireEventQ();
+      }
+      else if ((MaxMsgsToSimulate > 3) && ((NumMsgs4To5 + 1) % (MaxMsgsToSimulate / 3)) == 0) {
+        printEntireEventQ();
+      }
 
       /* *******************************************************************
          Here we've gotten a request to hand data from layer 5 to layer 4.
@@ -201,7 +203,7 @@ int main( int argc, char *argv[] )     {
         // a long time.  We want to make sure we down't overwhelm the
         // student code with messages that won't ever be delivered anyway.
         //
-        if ( NumMsgs5To4 <= MaxMsgsToSimulate + 3 ) {
+        if ( NumMsgs5To4 < MaxMsgsToSimulate) {
           GenerateNextArrival();           // set up future arrival
           NumMsgs5To4++;                   // # msgs from layer 5 to 4
         }

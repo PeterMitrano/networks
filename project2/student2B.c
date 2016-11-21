@@ -4,8 +4,6 @@
 #include "project2.h"
 #include "student2_common.h"
 
-#define BENTITY 1
-
 struct B_data {
   int alternating_bit;
 } B;
@@ -26,7 +24,7 @@ void B_input(struct pkt packet) {
     struct pkt nak;
     nak.acknum = packet.seqnum;
     nak.seqnum = -1;
-    tolayer3(BENTITY, nak);
+    tolayer3(BEntity, nak);
   }
   else if (packet.seqnum != B.alternating_bit) {
     // use -1 seq num to indicate nak
@@ -34,13 +32,18 @@ void B_input(struct pkt packet) {
     struct pkt nak;
     nak.acknum = packet.seqnum;
     nak.seqnum = -1;
-    tolayer3(BENTITY, nak);
+    tolayer3(BEntity, nak);
   }
   else {
     struct msg message;
-    printf(GRN "Delivering correct data: %i\n" RESET, packet.seqnum);
+    printf(GRN "Recieve OK: %i", packet.seqnum);
+    int i;
+    for (i = 0; i < MESSAGE_LENGTH; i++) {
+      printf("%c", packet.payload[i]);
+    }
+    printf(RESET "\n");
     memcpy(message.data, packet.payload, MESSAGE_LENGTH);
-    tolayer5(BENTITY, message);
+    tolayer5(BEntity, message);
 
     // send an ACK in response
     struct pkt ack;
@@ -48,7 +51,7 @@ void B_input(struct pkt packet) {
     ack.seqnum = 1;
     ack.checksum = 0;
     ack.checksum = compute_checksum(ack);
-    tolayer3(BENTITY, ack);
+    tolayer3(BEntity, ack);
 
     B.alternating_bit = 1 - B.alternating_bit;
   }

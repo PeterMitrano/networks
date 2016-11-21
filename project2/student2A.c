@@ -6,12 +6,11 @@
 #include "project2.h"
 #include "student2_common.h"
 
-#define AENTITY 0
-
 struct A_data {
   int alternating_bit;
+  int expected_ack;
   struct pkt unacked_packet;
-  bool valid_unacked_packet;
+  bool ready_to_send;
   struct queue packet_queue;
 } A;
 
@@ -24,25 +23,28 @@ struct A_data {
  */
 void A_input(struct pkt packet) {
   if (!verify_checksum(packet)) {
-    tolayer3(AENTITY, A.unacked_packet);
+    tolayer3(AEntity, A.unacked_packet);
     printf(RED "CORRUPT ACK/NAK. %i\n" RESET, packet.acknum);
   }
-  else if (packet.acknum != A.alternating_bit) {
-    tolayer3(AENTITY, A.unacked_packet);
+  else if (packet.acknum != A.expected_ack) {
+    tolayer3(AEntity, A.unacked_packet);
     printf(RED "Wrong ACK. %i\n" RESET, packet.acknum);
   }
   else if (packet.seqnum == -1) { // NAK, retransmit
-    tolayer3(AENTITY, A.unacked_packet);
+    tolayer3(AEntity, A.unacked_packet);
     printf(RED "NAK. %i\n" RESET, packet.acknum);
   }
   else if (packet.seqnum == 1) {
     //nah we good
     printf(GRN "ACK %i\n" RESET, packet.acknum);
-    struct pkt pkt;
-    dequeue(&A.packet_queue, &pkt);
+    A.ready_to_send = true;
 
-    // flip from 1 to 0
-    A.alternating_bit = 1 - A.alternating_bit;
+    // send a waiting packet
+    if (!queue_empty(A.packet_queue)) {
+      A.expected_ack = 1 - A.expected_ack;
+      dequeue(&A.packet_queue, &A.unacked_packet);
+      tolayer3(AEntity, A.unacked_packet);
+    }
   }
 }
 
@@ -55,20 +57,23 @@ void A_input(struct pkt packet) {
  * to the receiving side upper layer.
  */
 void A_output(struct msg message) {
-  struct pkt unacked_packet;
-  memcpy(unacked_packet.payload, message.data, MESSAGE_LENGTH);
-  unacked_packet.seqnum = A.alternating_bit;
-  unacked_packet.acknum = 0;
-  unacked_packet.checksum = 0;
-  unacked_packet.checksum = compute_checksum(unacked_packet);
+  memcpy(A.unacked_packet.payload, message.data, MESSAGE_LENGTH);
+  A.unacked_packet.seqnum = A.alternating_bit;
+  A.unacked_packet.acknum = 0;
+  A.unacked_packet.checksum = 0;
+  A.unacked_packet.checksum = compute_checksum(A.unacked_packet);
 
-  A.valid_unacked_packet = true;
-
-  if (queue_empty(A.packet_queue)) {
+  if (A.ready_to_send) {
     // send the data to the network
-    tolayer3(AENTITY, unacked_packet);
+    tolayer3(AEntity, A.unacked_packet);
+    A.ready_to_send = false;
   }
-  enqueue(&A.packet_queue, unacked_packet);
+  else {
+    enqueue(&A.packet_queue, A.unacked_packet);
+  }
+
+  // flip from 1 to 0
+  A.alternating_bit = 1 - A.alternating_bit;
 }
 
 /*
@@ -84,7 +89,8 @@ void A_timerinterrupt() {
 /* The following routine will be called once (only) before any other    */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init() {
-  A.valid_unacked_packet = false;
+  A.expected_ack = 0;
   A.alternating_bit = 0;
+  A.ready_to_send = true;
   queue_new(&A.packet_queue);
 }
