@@ -25,18 +25,20 @@ void B_input(struct pkt packet) {
     nak.acknum = packet.seqnum;
     nak.seqnum = -1;
     tolayer3(BEntity, nak);
+    exit(0);
   }
   else if (packet.seqnum != B.alternating_bit) {
     // use -1 seq num to indicate nak
-    printf(RED "Wrong PKT. %i\n" RESET, packet.acknum);
+    printf(RED "Wrong PKT. %i\n" RESET, packet.seqnum);
     struct pkt nak;
     nak.acknum = packet.seqnum;
     nak.seqnum = -1;
     tolayer3(BEntity, nak);
+    exit(0);
   }
   else {
     struct msg message;
-    printf(GRN "Recieve OK: %i", packet.seqnum);
+    printf(GRN "Recieve : %i ", packet.seqnum);
     int i;
     for (i = 0; i < MESSAGE_LENGTH; i++) {
       printf("%c", packet.payload[i]);
@@ -49,8 +51,7 @@ void B_input(struct pkt packet) {
     struct pkt ack;
     ack.acknum = packet.seqnum;
     ack.seqnum = 1;
-    ack.checksum = 0;
-    ack.checksum = compute_checksum(ack);
+    set_checksum(&ack);
     tolayer3(BEntity, ack);
 
     B.alternating_bit = 1 - B.alternating_bit;

@@ -23,12 +23,13 @@
 
 extern int TraceLevel;
 
-int compute_checksum(struct pkt packet);
+void set_checksum(struct pkt *packet);
 bool verify_checksum(struct pkt packet);
 
 struct queue {
   int head;
   int tail;
+  int size;
   struct pkt buffer[QUEUE_SIZE];
 };
 

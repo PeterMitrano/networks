@@ -303,6 +303,7 @@ void init( ) {
     int      i;
     double   sum, avg;
     double   TimeNow;
+    long InitialSeed;
     char     TempString[50];
 
     printf("-----  Network Simulator Version %6.3s -------- \n\n", VersionString);
@@ -315,6 +316,7 @@ void init( ) {
         TraceLevel             = atoi( CallingArgv[6] );
         RandomizationRequested = atoi( CallingArgv[7] );
         Bidirectional          = atoi( CallingArgv[8] );
+        InitialSeed            = atol( CallingArgv[9] );
     }
     else {
         printf("Enter the number of messages to simulate: ");
@@ -357,8 +359,15 @@ void init( ) {
     printf( "  Bi-directional = %d\n\n", Bidirectional );
 
     if ( RandomizationRequested == 1 )   {
-        GetTimeNow( &TimeNow );
-        SetRandomSeed( (long)TimeNow );
+        if (InitialSeed != -1) {
+          printf(" SEED: %lu\n", (long)InitialSeed);
+          SetRandomSeed( (long)InitialSeed);
+        }
+        else {
+          GetTimeNow( &TimeNow );
+          printf(" SEED: %lu\n", (long)TimeNow);
+          SetRandomSeed( (long)TimeNow );
+        }
     }
     // test random number generator for students
     // GetRandomNumber() should be uniform in [0,1]

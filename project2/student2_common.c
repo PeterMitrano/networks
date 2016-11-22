@@ -4,10 +4,12 @@
 #include "student2_common.h"
 #include "crc32.h"
 
-int compute_checksum(struct pkt packet) {
-  char *raw_packet = (char *) &packet;
+void set_checksum(struct pkt *packet) {
+  packet->checksum = 0;
+  char *raw_packet = (char *) packet;
   uint32_t crc = crc32(0, raw_packet, sizeof(struct pkt));
-  return crc;
+  packet->checksum = crc;
+  return;
 }
 
 bool verify_checksum(struct pkt packet) {
@@ -26,11 +28,17 @@ bool verify_checksum(struct pkt packet) {
 void queue_new(struct queue *q) {
   q->head = 0;
   q->tail = 0;
+  q->size = 0;
   memset(q->buffer, 0, QUEUE_SIZE * sizeof(struct pkt));
 }
 
 bool queue_empty(struct queue q) {
-  return (q.head == q.tail);
+  if (q.head == q.tail) {
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
 bool enqueue(struct queue *q, struct pkt p) {
@@ -43,6 +51,7 @@ bool enqueue(struct queue *q, struct pkt p) {
 
   q->buffer[q->head] = p;
   q->head = next;
+  q->size++;
   return true;
 }
 
@@ -59,6 +68,7 @@ bool dequeue(struct queue *q, struct pkt *p) {
 
   q->tail = QUEUE_WRAP(q->tail + 1);
 
+  q->size--;
   return true;
 }
 
