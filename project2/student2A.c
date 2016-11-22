@@ -42,7 +42,6 @@ void A_input(struct pkt packet) {
     //nah we good
     A.successes++;
     printf(GRN "ACK %i %i\n" RESET, packet.acknum, A.successes);
-    A.ready_to_send = true;
 
     // send a waiting packet
     if (!queue_empty(A.packet_queue)) {
@@ -55,6 +54,9 @@ void A_input(struct pkt packet) {
       }
       printf(RESET "\n");
       tolayer3(AEntity, A.unacked_packet);
+    }
+    else {
+      A.ready_to_send = true;
     }
   }
 }

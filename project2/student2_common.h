@@ -7,7 +7,7 @@
 // 20 + 3 * sizeof(int) = 32
 #define TOTAL_PACKET_SIZE 32
 
-#define QUEUE_SIZE 32 // must be power of 2
+#define QUEUE_SIZE 128 // must be power of 2
 
 // index wrapping macro
 #define QUEUE_WRAP(i) ((i) & (QUEUE_SIZE - 1))
