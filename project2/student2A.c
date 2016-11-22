@@ -24,35 +24,48 @@ struct A_data {
  */
 void A_input(struct pkt packet) {
   if (!verify_checksum(packet)) {
+    corrupt_count++;
+
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(RED "CORRUPT ACK/NAK. ");
+    print_packet(packet);
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(GRN "Resending : ");
+    print_packet(A.unacked_packet);
     tolayer3(AEntity, A.unacked_packet);
-    printf(RED "CORRUPT ACK/NAK. %i\n" RESET, packet.acknum);
-    exit(0);
   }
   else if (packet.acknum != A.expected_ack) {
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(RED "Wrong ACK. ");
+    print_packet(packet);
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(GRN "Resending : ");
+    print_packet(A.unacked_packet);
     tolayer3(AEntity, A.unacked_packet);
-    printf(RED "Wrong ACK. %i\n" RESET, packet.acknum);
-    exit(0);
   }
   else if (packet.seqnum == -1) { // NAK, retransmit
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(RED "NAK. ");
+    print_packet(packet);
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(GRN "Resending : ");
+    print_packet(A.unacked_packet);
     tolayer3(AEntity, A.unacked_packet);
-    printf(RED "NAK. %i\n" RESET, packet.acknum);
-    exit(0);
   }
   else if (packet.seqnum == 1) {
     //nah we good
     A.successes++;
-    printf(GRN "ACK %i %i\n" RESET, packet.acknum, A.successes);
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(GRN "ACK ");
+    print_packet(packet);
 
     // send a waiting packet
     if (!queue_empty(A.packet_queue)) {
       dequeue(&A.packet_queue, &A.unacked_packet);
       A.expected_ack = A.unacked_packet.seqnum;
-      printf(GRN "Dequeue : %i ", A.unacked_packet.seqnum);
-      int i;
-      for (i = 0; i < MESSAGE_LENGTH; i++) {
-        printf("%c", A.unacked_packet.payload[i]);
-      }
-      printf(RESET "\n");
+      printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+      printf(GRN "Dequeue : ");
+      print_packet(A.unacked_packet);
       tolayer3(AEntity, A.unacked_packet);
     }
     else {
@@ -81,25 +94,19 @@ void A_output(struct msg message) {
     A.unacked_packet = new_packet;
     A.expected_ack = new_packet.seqnum;
     tolayer3(AEntity, A.unacked_packet);
-    printf(GRN "Sending : %i ", A.unacked_packet.seqnum);
-    int i;
-    for (i = 0; i < MESSAGE_LENGTH; i++) {
-      printf("%c", A.unacked_packet.payload[i]);
-    }
-    printf(RESET "\n");
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(GRN "Sending : ");
+    print_packet(new_packet);
     A.ready_to_send = false;
   }
   else {
-    printf(MAG "Queueing: %i ", new_packet.seqnum);
-    int i;
-    for (i = 0; i < MESSAGE_LENGTH; i++) {
-      printf("%c", new_packet.payload[i]);
-    }
-    printf(RESET "\n");
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(MAG "Queueing: ");
+    print_packet(new_packet);
     enqueue(&A.packet_queue, new_packet);
   }
 
-  // flip from 1 to 0
+  // flip
   A.alternating_bit = 1 - A.alternating_bit;
 }
 

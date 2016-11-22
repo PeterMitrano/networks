@@ -389,6 +389,7 @@ void init( ) {
 
     CurrentSimTime = 0.0;                  /* initialize time to 0.0 */
     GenerateNextArrival();     /* initialize event list */
+    NumMsgs5To4++;                   // # msgs from layer 5 to 4
 }                               /*  End of init()   */
 
 /**************************************************************************

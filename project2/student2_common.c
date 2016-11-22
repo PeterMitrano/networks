@@ -4,6 +4,17 @@
 #include "student2_common.h"
 #include "crc32.h"
 
+int corrupt_count = 0;
+
+void print_packet(struct pkt packet) {
+  printf("%i  %i  ", packet.seqnum, packet.acknum);
+  int i;
+  for (i = 0; i < MESSAGE_LENGTH; i++) {
+    printf("%c", packet.payload[i]);
+  }
+  printf(RESET "\n");
+}
+
 void set_checksum(struct pkt *packet) {
   packet->checksum = 0;
   char *raw_packet = (char *) packet;

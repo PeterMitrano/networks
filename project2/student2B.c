@@ -16,34 +16,49 @@ struct B_data {
  */
 void B_input(struct pkt packet) {
 
+  if (corrupt_count > NumMsgsCorrupt) {
+    printf("FUCK %i %i", corrupt_count, NumMsgsCorrupt);
+  }
+
   // deliver the data to app layer
   // but only if it's not fucked
   if (!verify_checksum(packet)) {
+    corrupt_count++;
+
     // send a NAK
-    printf(RED "CORRUPT PKT. %i\n" RESET, packet.acknum);
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(RED "CORRUPT PKT. ");
+    print_packet(packet);
     struct pkt nak;
+    memset(nak.payload, 0, MESSAGE_LENGTH);
     nak.acknum = packet.seqnum;
     nak.seqnum = -1;
+    set_checksum(&nak);
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(CYN "NAK . ");
+    print_packet(nak);
     tolayer3(BEntity, nak);
-    exit(0);
   }
   else if (packet.seqnum != B.alternating_bit) {
-    // use -1 seq num to indicate nak
-    printf(RED "Wrong PKT. %i\n" RESET, packet.seqnum);
+    // send ack for the (wrong) packet
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(RED "Wrong PKT : ");
+    print_packet(packet);
     struct pkt nak;
+    memset(nak.payload, 0, MESSAGE_LENGTH);
     nak.acknum = packet.seqnum;
-    nak.seqnum = -1;
+    nak.seqnum = 1;
+    set_checksum(&nak);
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(CYN "ACK . ");
+    print_packet(nak);
     tolayer3(BEntity, nak);
-    exit(0);
   }
   else {
     struct msg message;
-    printf(GRN "Recieve : %i ", packet.seqnum);
-    int i;
-    for (i = 0; i < MESSAGE_LENGTH; i++) {
-      printf("%c", packet.payload[i]);
-    }
-    printf(RESET "\n");
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(GRN "Recieve : ");
+    print_packet(packet);
     memcpy(message.data, packet.payload, MESSAGE_LENGTH);
     tolayer5(BEntity, message);
 
@@ -51,9 +66,14 @@ void B_input(struct pkt packet) {
     struct pkt ack;
     ack.acknum = packet.seqnum;
     ack.seqnum = 1;
+    memset(ack.payload, 0, MESSAGE_LENGTH);
     set_checksum(&ack);
+    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
+    printf(CYN "ACK . ");
+    print_packet(ack);
     tolayer3(BEntity, ack);
 
+    // flip
     B.alternating_bit = 1 - B.alternating_bit;
   }
 }

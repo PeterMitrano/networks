@@ -18,10 +18,14 @@
 #define BLU  "\x1B[34m"
 #define MAG  "\x1B[35m"
 #define CYN  "\x1B[36m"
-#define W HT  "\x1B[37m"
+#define WHT  "\x1B[37m"
 #define RESET  "\x1B[0m"
 
 extern int TraceLevel;
+extern int NumMsgsCorrupt;
+extern int corrupt_count;
+
+void print_packet(struct pkt packet);
 
 void set_checksum(struct pkt *packet);
 bool verify_checksum(struct pkt packet);
