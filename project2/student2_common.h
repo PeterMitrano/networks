@@ -24,6 +24,7 @@
 extern int TraceLevel;
 extern int NumMsgsCorrupt;
 extern int corrupt_count;
+extern double AveTimeBetweenMsgs;
 
 void debug_print(char *prefix, char *color, struct pkt packet);
 void print_packet(struct pkt packet);
