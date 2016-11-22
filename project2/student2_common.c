@@ -6,8 +6,13 @@
 
 int corrupt_count = 0;
 
+void debug_print(char *prefix, char *color, struct pkt packet) {
+  printf("(%-3i, %-3i) %s%-17s ", corrupt_count, NumMsgsCorrupt, color, prefix);
+  print_packet(packet);
+}
+
 void print_packet(struct pkt packet) {
-  printf("%i  %i  ", packet.seqnum, packet.acknum);
+  printf("%-10i  %-10i  ", packet.seqnum, packet.acknum);
   int i;
   for (i = 0; i < MESSAGE_LENGTH; i++) {
     printf("%c", packet.payload[i]);

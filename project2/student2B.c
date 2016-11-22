@@ -15,50 +15,39 @@ struct B_data {
  * packet is the (possibly corrupted) packet sent from the A-side.
  */
 void B_input(struct pkt packet) {
-
-  if (corrupt_count > NumMsgsCorrupt) {
-    printf("FUCK %i %i", corrupt_count, NumMsgsCorrupt);
-  }
-
   // deliver the data to app layer
   // but only if it's not fucked
   if (!verify_checksum(packet)) {
     corrupt_count++;
+    debug_print("Corrupt pkt", RED, packet);
 
     // send a NAK
-    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
-    printf(RED "CORRUPT PKT. ");
-    print_packet(packet);
     struct pkt nak;
     memset(nak.payload, 0, MESSAGE_LENGTH);
     nak.acknum = packet.seqnum;
     nak.seqnum = -1;
     set_checksum(&nak);
-    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
-    printf(CYN "NAK . ");
-    print_packet(nak);
+
+    debug_print("Nak", CYN, nak);
     tolayer3(BEntity, nak);
   }
   else if (packet.seqnum != B.alternating_bit) {
+    debug_print("Wrong Pkt", RED, packet);
+    struct pkt ack;
+    memset(ack.payload, 0, MESSAGE_LENGTH);
+    ack.acknum = packet.seqnum;
+    ack.seqnum = 1;
+    set_checksum(&ack);
+
     // send ack for the (wrong) packet
-    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
-    printf(RED "Wrong PKT : ");
-    print_packet(packet);
-    struct pkt nak;
-    memset(nak.payload, 0, MESSAGE_LENGTH);
-    nak.acknum = packet.seqnum;
-    nak.seqnum = 1;
-    set_checksum(&nak);
-    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
-    printf(CYN "ACK . ");
-    print_packet(nak);
-    tolayer3(BEntity, nak);
+    debug_print("Sending Nak", CYN, ack);
+    tolayer3(BEntity, ack);
   }
   else {
+    debug_print("Received", GRN, packet);
+
+    //deliver to app layer
     struct msg message;
-    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
-    printf(GRN "Recieve : ");
-    print_packet(packet);
     memcpy(message.data, packet.payload, MESSAGE_LENGTH);
     tolayer5(BEntity, message);
 
@@ -68,9 +57,8 @@ void B_input(struct pkt packet) {
     ack.seqnum = 1;
     memset(ack.payload, 0, MESSAGE_LENGTH);
     set_checksum(&ack);
-    printf("(%i, %i) ", corrupt_count, NumMsgsCorrupt);
-    printf(CYN "ACK . ");
-    print_packet(ack);
+
+    debug_print("Sending Ack", CYN, ack);
     tolayer3(BEntity, ack);
 
     // flip

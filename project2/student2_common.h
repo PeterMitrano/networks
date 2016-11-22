@@ -25,6 +25,7 @@ extern int TraceLevel;
 extern int NumMsgsCorrupt;
 extern int corrupt_count;
 
+void debug_print(char *prefix, char *color, struct pkt packet);
 void print_packet(struct pkt packet);
 
 void set_checksum(struct pkt *packet);
