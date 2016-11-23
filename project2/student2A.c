@@ -49,12 +49,15 @@ void A_input(struct pkt packet) {
     // stop the timer
     stopTimer(AEntity);
 
-    // send a waiting packet
+    // send the next packet waiting in the queue
     if (!queue_empty(A.packet_queue)) {
       dequeue(&A.packet_queue, &A.unacked_packet);
       A.expected_ack = A.unacked_packet.seqnum;
       debug_print("Dequeue", GRN, A.unacked_packet);
       tolayer3(AEntity, A.unacked_packet);
+
+      //start timer for new one
+      startTimer(AEntity, A.timer_length);
     }
     else {
       A.ready_to_send = true;
@@ -119,7 +122,7 @@ void A_timerinterrupt() {
 void A_init() {
   // A small hack. Take the user-specified time between messages
   // and double it, just to be safe. This gives a decent initial value
-  A.timer_length = 2 * AveTimeBetweenMsgs;
+  A.timer_length = 2 * AveTimeBetweenMsgs + 10;
   A.successes = 0;
   A.expected_ack = 0;
   A.alternating_bit = 0;
