@@ -57,6 +57,10 @@ bool queue_empty(struct queue q) {
   }
 }
 
+struct pkt queue_at(struct queue q, int i) {
+  return q.buffer[QUEUE_WRAP(q.tail + i)];
+}
+
 bool enqueue(struct queue *q, struct pkt p) {
   int next = QUEUE_WRAP(q->head + 1);
 
@@ -76,7 +80,11 @@ bool dequeue(struct queue *q, struct pkt *p) {
   if (q->head == q->tail)
       return false;  // quit with an error
 
-  *p = q->buffer[q->tail];
+  // give the dequeue'd pkt to the sender if they want it
+  if (p != NULL) {
+    *p = q->buffer[q->tail];
+  }
+
   // clear the data (optional)
   q->buffer[q->tail].checksum = -1;
   q->buffer[q->tail].acknum = -1;

@@ -5,7 +5,7 @@
 #include "student2_common.h"
 
 struct B_data {
-  int alternating_bit;
+  int expected_seqnum;
 } B;
 
 /*
@@ -21,26 +21,29 @@ void B_input(struct pkt packet) {
     corrupt_count++;
     debug_print("Corrupt pkt", RED, packet);
 
-    // send a NAK
-    struct pkt nak;
-    memset(nak.payload, 0, MESSAGE_LENGTH);
-    nak.acknum = packet.seqnum;
-    nak.seqnum = -1;
-    set_checksum(&nak);
-
-    debug_print("Nak", CYN, nak);
-    tolayer3(BEntity, nak);
-  }
-  else if (packet.seqnum != B.alternating_bit) {
-    debug_print("Wrong Pkt", RED, packet);
     struct pkt ack;
     memset(ack.payload, 0, MESSAGE_LENGTH);
-    ack.acknum = packet.seqnum;
+    ack.acknum = B.expected_seqnum;
     ack.seqnum = 1;
     set_checksum(&ack);
 
-    // send ack for the (wrong) packet
-    debug_print("Sending Nak", CYN, ack);
+    // send ack for the last recieved packet
+    debug_print("Sending Ack", CYN, ack);
+    tolayer3(BEntity, ack);
+  }
+  else if (packet.seqnum != B.expected_seqnum) {
+    debug_print("Wrong seqnum", RED, packet);
+
+    // COPIED FROM PREVIOUS IF STATEMENT
+    // only seperate for debugging ease
+    struct pkt ack;
+    memset(ack.payload, 0, MESSAGE_LENGTH);
+    ack.acknum = B.expected_seqnum;
+    ack.seqnum = 1;
+    set_checksum(&ack);
+
+    // send ack for the last recieved packet
+    debug_print("Sending Old Ack", CYN, ack);
     tolayer3(BEntity, ack);
   }
   else {
@@ -51,9 +54,9 @@ void B_input(struct pkt packet) {
     memcpy(message.data, packet.payload, MESSAGE_LENGTH);
     tolayer5(BEntity, message);
 
-    // send an ACK in response
+    // send a cummulative ACK in response
     struct pkt ack;
-    ack.acknum = packet.seqnum;
+    ack.acknum = B.expected_seqnum;
     ack.seqnum = 1;
     memset(ack.payload, 0, MESSAGE_LENGTH);
     set_checksum(&ack);
@@ -61,8 +64,7 @@ void B_input(struct pkt packet) {
     debug_print("Sending Ack", CYN, ack);
     tolayer3(BEntity, ack);
 
-    // flip
-    B.alternating_bit = 1 - B.alternating_bit;
+    B.expected_seqnum++;
   }
 }
 
@@ -80,7 +82,7 @@ void  B_timerinterrupt() {
  * entity B routines are called. You can use it to do any initialization
  */
 void B_init() {
-  B.alternating_bit = 0;
+  B.expected_seqnum = 0;
 }
 
 

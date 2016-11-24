@@ -7,13 +7,12 @@
 #include "student2_common.h"
 
 struct A_data {
-  int successes;
-  int alternating_bit;
-  int expected_ack;
-  struct pkt unacked_packet;
-  bool ready_to_send;
-  struct queue packet_queue;
+  int window_size;
+  int base;
+  int seqnum;
   double timer_length;
+  struct queue packet_queue;
+  struct queue send_window;
 } A;
 
 /*
@@ -25,42 +24,41 @@ struct A_data {
 void A_input(struct pkt packet) {
   if (!verify_checksum(packet)) {
     corrupt_count++;
-
-    debug_print("Corrupt Ack/Nak", RED, packet);
-    debug_print("Resending", GRN, A.unacked_packet);
-    tolayer3(AEntity, A.unacked_packet);
+    debug_print("Correupt Ack/Nak", RED, packet);
+    printf(YEL "Ignoring...\n" RESET);
   }
-  else if (packet.acknum != A.expected_ack) {
-    debug_print("Wrong Ack.", RED, packet);
-    debug_print("Resending", GRN, A.unacked_packet);
-    print_packet(A.unacked_packet);
-    tolayer3(AEntity, A.unacked_packet);
-  }
-  else if (packet.seqnum == -1) { // NAK, retransmit
+  else if (packet.seqnum == -1) { //TODO: does GBN have NAKs?
     debug_print("Got OK Nak", RED, packet);
-    debug_print("Resending", GRN, A.unacked_packet);
-    tolayer3(AEntity, A.unacked_packet);
+    printf(YEL "Ignoring...\n" RESET);
   }
   else if (packet.seqnum == 1) {
     // nah we good
-    A.successes++;
     debug_print("Got Ok Ack", GRN, packet);
 
-    // stop the timer
-    stopTimer(AEntity);
-
-    // send the next packet waiting in the queue
-    if (!queue_empty(A.packet_queue)) {
-      dequeue(&A.packet_queue, &A.unacked_packet);
-      A.expected_ack = A.unacked_packet.seqnum;
-      debug_print("Dequeue", GRN, A.unacked_packet);
-      tolayer3(AEntity, A.unacked_packet);
-
+    // stop the timer & move window forward
+    A.base = packet.acknum + 1;
+    dequeue(&A.send_window, NULL);
+    if (A.base == A.seqnum) {
+      stopTimer(AEntity);
+    }
+    else {
       //start timer for new one
       startTimer(AEntity, A.timer_length);
     }
-    else {
-      A.ready_to_send = true;
+
+    // send the next packet waiting in the queue
+    if ((A.seqnum < A.base + A.window_size)
+        && !queue_empty(A.packet_queue)) {
+      struct pkt p;
+      dequeue(&A.packet_queue, &p);
+      //resassign seqnum because these were queue'd in the past
+      p.seqnum = A.seqnum;
+      debug_print("Dequeue", GRN, p);
+
+      tolayer3(AEntity, p);
+      enqueue(&A.send_window, p);
+
+      A.seqnum++;
     }
   }
 }
@@ -68,6 +66,7 @@ void A_input(struct pkt packet) {
 /*
  * A_output(message) Where message is a structure of type msg, containing data to be sent
  * to the B-side. This routine will be called whenever the upper layer
+ *
  * at the sending side (A) has a message to send.
  * It is the job of your protocol to insure that the data
  * in such a message is delivered in-order, and correctly,
@@ -76,29 +75,27 @@ void A_input(struct pkt packet) {
 void A_output(struct msg message) {
   struct pkt new_packet;
   memcpy(new_packet.payload, message.data, MESSAGE_LENGTH);
-  new_packet.seqnum = A.alternating_bit;
+  new_packet.seqnum = A.seqnum;
   new_packet.acknum = 0;
   set_checksum(&new_packet);
 
-  if (A.ready_to_send) {
+  // send if it's within our window
+  if (A.seqnum < A.base + A.window_size) {
     // send the data to the network
-    A.ready_to_send = false;
-    A.unacked_packet = new_packet;
-    A.expected_ack = new_packet.seqnum;
-
     debug_print("Sending", GRN, new_packet);
-    tolayer3(AEntity, A.unacked_packet);
+    tolayer3(AEntity, new_packet);
+    enqueue(&A.send_window, new_packet);
 
-    //start the timer
-    startTimer(AEntity, A.timer_length);
+    //start the timer & increment seqnum
+    if (A.base == A.seqnum) {
+      startTimer(AEntity, A.timer_length);
+    }
+    A.seqnum++;
   }
   else {
     debug_print("Queueing", MAG, new_packet);
     enqueue(&A.packet_queue, new_packet);
   }
-
-  // flip
-  A.alternating_bit = 1 - A.alternating_bit;
 }
 
 /*
@@ -110,8 +107,17 @@ void A_output(struct msg message) {
 void A_timerinterrupt() {
   // resend the packet
   printf(YEL "Timeout\n" RESET);
-  debug_print("Resending", GRN, A.unacked_packet);
-  tolayer3(AEntity, A.unacked_packet);
+
+  if (A.send_window.size <= 0) {
+    exit(0);
+  }
+
+  int i;
+  for (i = 0; i < A.send_window.size; i++) {
+    struct pkt p = queue_at(A.send_window, i);
+    debug_print("Resending", GRN, p);
+    tolayer3(AEntity, p);
+  }
 
   // restart the timer
   startTimer(AEntity, A.timer_length);
@@ -122,10 +128,10 @@ void A_timerinterrupt() {
 void A_init() {
   // A small hack. Take the user-specified time between messages
   // and double it, just to be safe. This gives a decent initial value
-  A.timer_length = 2 * AveTimeBetweenMsgs + 10;
-  A.successes = 0;
-  A.expected_ack = 0;
-  A.alternating_bit = 0;
-  A.ready_to_send = true;
+  A.timer_length = 5 * AveTimeBetweenMsgs + 10;
+  A.seqnum = 0;
+  A.base = 0;
+  A.window_size = 4; // treated as constant, but could be anything
   queue_new(&A.packet_queue);
+  queue_new(&A.send_window);
 }
