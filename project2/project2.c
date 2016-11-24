@@ -544,7 +544,7 @@ void InsertEvent(p)
 {
     struct event *q,*qold;
 
-    /*if ( TraceLevel >= 5)*/
+    if ( TraceLevel >= 5)
         printf("\tInsertEvent: Time now is %f.  Future event will be at %f\n", CurrentSimTime, p->evtime );
 
     q = evlist;     /* q points to header of list in which p struct inserted */
