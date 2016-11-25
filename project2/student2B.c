@@ -5,6 +5,7 @@
 #include "student2_common.h"
 
 struct B_data {
+  int packet_id;
   int expected_seqnum;
 } B;
 
@@ -23,8 +24,8 @@ void B_input(struct pkt packet) {
 
     struct pkt ack;
     memset(ack.payload, 0, MESSAGE_LENGTH);
-    ack.acknum = B.expected_seqnum;
-    ack.seqnum = 1;
+    ack.acknum = B.expected_seqnum - 1;
+    ack.seqnum = B.packet_id++;
     set_checksum(&ack);
 
     // send ack for the last recieved packet
@@ -38,8 +39,8 @@ void B_input(struct pkt packet) {
     // only seperate for debugging ease
     struct pkt ack;
     memset(ack.payload, 0, MESSAGE_LENGTH);
-    ack.acknum = B.expected_seqnum;
-    ack.seqnum = 1;
+    ack.acknum = B.expected_seqnum - 1;
+    ack.seqnum = B.packet_id++;
     set_checksum(&ack);
 
     // send ack for the last recieved packet
@@ -57,7 +58,7 @@ void B_input(struct pkt packet) {
     // send a cummulative ACK in response
     struct pkt ack;
     ack.acknum = B.expected_seqnum;
-    ack.seqnum = 1;
+    ack.seqnum = B.packet_id++;
     memset(ack.payload, 0, MESSAGE_LENGTH);
     set_checksum(&ack);
 
@@ -82,6 +83,7 @@ void  B_timerinterrupt() {
  * entity B routines are called. You can use it to do any initialization
  */
 void B_init() {
+  B.packet_id = 9000;
   B.expected_seqnum = 0;
 }
 

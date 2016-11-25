@@ -779,12 +779,12 @@ void tolayer3( int AorB, struct pkt packet ) {
     //Simulate losses.  We do this simply by not saving the packet
     if ( GetRandomNumber() < LossProb )  {
         NumMsgsLost++;          //  Count number of lost packets
-        /*if ( TraceLevel > 5 )    {*/
+        if ( TraceLevel > 5 )    {
             if ( AorB == AEntity )
                 printf("\t<Packet from A: Layer 4 to 3 is being lost>\n" );
             else
                 printf("\t<Packet from B: Layer 4 to 3 is being lost>\n" );
-        /*}*/
+        }
         free(mypktptr);
         return;
     }

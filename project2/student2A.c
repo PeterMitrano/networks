@@ -9,7 +9,9 @@
 struct A_data {
   int window_size;
   int base;
-  int seqnum;
+  int packet_id;
+  int nextseqnum;
+  int incoming_seqnum;
   double timer_length;
   struct queue packet_queue;
   struct queue send_window;
@@ -27,39 +29,54 @@ void A_input(struct pkt packet) {
     debug_print("Correupt Ack/Nak", RED, packet);
     printf(YEL "Ignoring...\n" RESET);
   }
-  else if (packet.seqnum == -1) { //TODO: does GBN have NAKs?
+  else if (packet.seqnum < 0) { //TODO: add NAKs back
     debug_print("Got OK Nak", RED, packet);
     printf(YEL "Ignoring...\n" RESET);
   }
-  else if (packet.seqnum == 1) {
-    // nah we good
+  else if (packet.seqnum > 0) {
+    // if we got an old ack, just wait for timeout
+    // this means the reciever missed something
+    if (packet.acknum < A.base) {
+      debug_print("Got Old Ack", RED, packet);
+      return;
+    }
+
     debug_print("Got Ok Ack", GRN, packet);
 
-    // stop the timer & move window forward
-    A.base = packet.acknum + 1;
-    dequeue(&A.send_window, NULL);
-    if (A.base == A.seqnum) {
-      stopTimer(AEntity);
+    // move window forward and add queued packets to send window
+    do {
+      A.base++;
+      dequeue(&A.send_window, NULL);
+
+      if (!queue_empty(A.packet_queue)) {
+        // take one off the queue, add send it
+        struct pkt p;
+        dequeue(&A.packet_queue, &p);
+        enqueue(&A.send_window, p);
+      }
     }
-    else {
-      //start timer for new one
-      startTimer(AEntity, A.timer_length);
-    }
+    while (A.base < packet.acknum + 1);
+
+    // get rid of any previously acked packets.
+    // this is a result of cummulative acking
 
     // send the next packet waiting in the queue
-    if ((A.seqnum < A.base + A.window_size)
-        && !queue_empty(A.packet_queue)) {
-      struct pkt p;
-      dequeue(&A.packet_queue, &p);
-      //resassign seqnum because these were queue'd in the past
-      p.seqnum = A.seqnum;
-      debug_print("Dequeue", GRN, p);
+    while ((A.nextseqnum < A.base + A.window_size)
+        && !queue_empty(A.send_window)) {
+      struct pkt next_packet;
+      next_packet = queue_at(A.send_window, 0);
+      next_packet.acknum = A.packet_id++;
+      set_checksum(&next_packet);
+      debug_print("Sending", GRN, next_packet);
+      tolayer3(AEntity, next_packet);
+      A.nextseqnum++;
 
-      tolayer3(AEntity, p);
-      enqueue(&A.send_window, p);
-
-      A.seqnum++;
     }
+
+    // restart the timer
+    printf("restarting timer...\n");
+    stopTimer(AEntity);
+    startTimer(AEntity, A.timer_length);
   }
 }
 
@@ -75,22 +92,22 @@ void A_input(struct pkt packet) {
 void A_output(struct msg message) {
   struct pkt new_packet;
   memcpy(new_packet.payload, message.data, MESSAGE_LENGTH);
-  new_packet.seqnum = A.seqnum;
-  new_packet.acknum = 0;
+  new_packet.seqnum = A.incoming_seqnum++;
+  new_packet.acknum = A.packet_id++;
   set_checksum(&new_packet);
 
   // send if it's within our window
-  if (A.seqnum < A.base + A.window_size) {
+  if (A.nextseqnum < A.base + A.window_size) {
     // send the data to the network
-    debug_print("Sending", GRN, new_packet);
+    debug_print("Original Send", GRN, new_packet);
     tolayer3(AEntity, new_packet);
     enqueue(&A.send_window, new_packet);
 
     //start the timer & increment seqnum
-    if (A.base == A.seqnum) {
+    if (A.base == A.nextseqnum) {
       startTimer(AEntity, A.timer_length);
     }
-    A.seqnum++;
+    A.nextseqnum++;
   }
   else {
     debug_print("Queueing", MAG, new_packet);
@@ -105,17 +122,20 @@ void A_output(struct msg message) {
  * and stoptimer() in the writeup for how the timer is started and stopped.
  */
 void A_timerinterrupt() {
-  // resend the packet
-  printf(YEL "Timeout\n" RESET);
+  printf(YEL "Timeout!\n" RESET);
 
   if (A.send_window.size <= 0) {
+    printf(RED "PRETTY SURE THIS IS SUPER BAD\n" RESET);
     exit(0);
   }
 
   int i;
+  // resend the packets in the window
   for (i = 0; i < A.send_window.size; i++) {
     struct pkt p = queue_at(A.send_window, i);
+    p.acknum = A.packet_id++;
     debug_print("Resending", GRN, p);
+    set_checksum(&p);
     tolayer3(AEntity, p);
   }
 
@@ -128,10 +148,13 @@ void A_timerinterrupt() {
 void A_init() {
   // A small hack. Take the user-specified time between messages
   // and double it, just to be safe. This gives a decent initial value
-  A.timer_length = 5 * AveTimeBetweenMsgs + 10;
-  A.seqnum = 0;
+  A.timer_length = 100 * AveTimeBetweenMsgs;
+
+  A.nextseqnum = 0;
+  A.packet_id = 1000;
   A.base = 0;
-  A.window_size = 4; // treated as constant, but could be anything
+  A.incoming_seqnum = 0;
+  A.window_size = 16; // treated as constant, but could be anything
   queue_new(&A.packet_queue);
   queue_new(&A.send_window);
 }
