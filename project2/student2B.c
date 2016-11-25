@@ -22,30 +22,28 @@ void B_input(struct pkt packet) {
     corrupt_count++;
     debug_print("Corrupt pkt", RED, packet);
 
-    struct pkt ack;
-    memset(ack.payload, 0, MESSAGE_LENGTH);
-    ack.acknum = B.expected_seqnum - 1;
-    ack.seqnum = B.packet_id++;
-    set_checksum(&ack);
+    struct pkt nak;
+    memset(nak.payload, 0, MESSAGE_LENGTH);
+    nak.acknum = B.expected_seqnum - 1;
+    nak.seqnum = -B.packet_id++;
+    set_checksum(&nak);
 
     // send ack for the last recieved packet
-    debug_print("Sending Ack", CYN, ack);
-    tolayer3(BEntity, ack);
+    debug_print("Sending NAK", CYN, nak);
+    tolayer3(BEntity, nak);
   }
   else if (packet.seqnum != B.expected_seqnum) {
     debug_print("Wrong seqnum", RED, packet);
 
-    // COPIED FROM PREVIOUS IF STATEMENT
-    // only seperate for debugging ease
-    struct pkt ack;
-    memset(ack.payload, 0, MESSAGE_LENGTH);
-    ack.acknum = B.expected_seqnum - 1;
-    ack.seqnum = B.packet_id++;
-    set_checksum(&ack);
+    struct pkt nak;
+    memset(nak.payload, 0, MESSAGE_LENGTH);
+    nak.acknum = B.expected_seqnum - 1;
+    nak.seqnum = -B.packet_id++;
+    set_checksum(&nak);
 
-    // send ack for the last recieved packet
-    debug_print("Sending Old Ack", CYN, ack);
-    tolayer3(BEntity, ack);
+    // send nak for the last recieved pnaket
+    debug_print("Sending Old Ack", CYN, nak);
+    tolayer3(BEntity, nak);
   }
   else {
     debug_print("Received", GRN, packet);

@@ -42,5 +42,6 @@ struct queue {
 void queue_new(struct queue *q);
 bool queue_empty(struct queue q);
 struct pkt queue_at(struct queue q, int i);
+bool queue_get_seq(struct queue q, int seqnum, struct pkt *out);
 bool enqueue(struct queue *q, struct pkt p);
 bool dequeue(struct queue *q, struct pkt *p);

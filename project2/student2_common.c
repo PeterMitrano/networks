@@ -8,7 +8,7 @@ int corrupt_count = 0;
 
 void debug_print(char *prefix, char *color, struct pkt packet) {
   if (TraceLevel == -1 || TraceLevel > 1) {
-    printf("(%-3i, %-3i) %s%-17s ", corrupt_count, NumMsgsCorrupt, color, prefix);
+    printf("(%-3i, %-3i) %s%-20s ", corrupt_count, NumMsgsCorrupt, color, prefix);
     print_packet(packet);
   }
 }
@@ -57,6 +57,18 @@ bool queue_empty(struct queue q) {
   else {
     return false;
   }
+}
+
+bool queue_get_seq(struct queue q, int seqnum, struct pkt *out) {
+  int i;
+  for (i = q.tail; i != q.head; i = QUEUE_WRAP(i + 1)) {
+    if (q.buffer[i].seqnum == seqnum) {
+      *out = q.buffer[i];
+      return true;
+    }
+  }
+
+  return false;
 }
 
 struct pkt queue_at(struct queue q, int i) {

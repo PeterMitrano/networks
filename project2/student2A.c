@@ -27,21 +27,19 @@ void A_input(struct pkt packet) {
   if (!verify_checksum(packet)) {
     corrupt_count++;
     debug_print("Correupt Ack/Nak", RED, packet);
-    printf(YEL "Ignoring...\n" RESET);
+    if (TraceLevel == -1 || TraceLevel > 1) {
+      printf(YEL "Ignoring.\n" RESET);
+    }
   }
-  else if (packet.seqnum < 0) { //TODO: add NAKs back
-    debug_print("Got OK Nak", RED, packet);
-    printf(YEL "Ignoring...\n" RESET);
-  }
-  else if (packet.seqnum > 0) {
-    // if we got an old ack, just wait for timeout
+  else {
+    // if we got an old nak, just wait for timeout
     // this means the reciever missed something
     if (packet.acknum < A.base) {
       debug_print("Got Old Ack", RED, packet);
       return;
     }
 
-    debug_print("Got Ok Ack", GRN, packet);
+    debug_print("Got Ok NAK/ACK", GRN, packet);
 
     // move window forward and add queued packets to send window
     do {
@@ -114,7 +112,9 @@ void A_output(struct msg message) {
  * and stoptimer() in the writeup for how the timer is started and stopped.
  */
 void A_timerinterrupt() {
-  printf(YEL "Timeout!\n" RESET);
+  if (TraceLevel == -1 || TraceLevel > 1) {
+    printf(YEL "Timeout!\n" RESET);
+  }
 
   int i;
   // resend the packets in the window
