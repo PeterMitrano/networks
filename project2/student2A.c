@@ -52,7 +52,13 @@ void A_input(struct pkt packet) {
         // take one off the queue, add send it
         struct pkt p;
         dequeue(&A.packet_queue, &p);
+        p.acknum = A.packet_id++;
+        set_checksum(&p);
         enqueue(&A.send_window, p);
+        debug_print("Sending", GRN, p);
+        tolayer3(AEntity, p);
+
+        A.nextseqnum++;
       }
     }
     while (A.base < packet.acknum + 1);
@@ -60,21 +66,7 @@ void A_input(struct pkt packet) {
     // get rid of any previously acked packets.
     // this is a result of cummulative acking
 
-    // send the next packet waiting in the queue
-    while ((A.nextseqnum < A.base + A.window_size)
-        && !queue_empty(A.send_window)) {
-      struct pkt next_packet;
-      next_packet = queue_at(A.send_window, 0);
-      next_packet.acknum = A.packet_id++;
-      set_checksum(&next_packet);
-      debug_print("Sending", GRN, next_packet);
-      tolayer3(AEntity, next_packet);
-      A.nextseqnum++;
-
-    }
-
     // restart the timer
-    printf("restarting timer...\n");
     stopTimer(AEntity);
     startTimer(AEntity, A.timer_length);
   }
