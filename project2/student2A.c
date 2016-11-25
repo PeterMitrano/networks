@@ -116,11 +116,6 @@ void A_output(struct msg message) {
 void A_timerinterrupt() {
   printf(YEL "Timeout!\n" RESET);
 
-  if (A.send_window.size <= 0) {
-    printf(RED "PRETTY SURE THIS IS SUPER BAD\n" RESET);
-    exit(0);
-  }
-
   int i;
   // resend the packets in the window
   for (i = 0; i < A.send_window.size; i++) {
@@ -146,7 +141,7 @@ void A_init() {
   A.packet_id = 1000;
   A.base = 0;
   A.incoming_seqnum = 0;
-  A.window_size = 16; // treated as constant, but could be anything
+  A.window_size = 8; // treated as constant, but could be anything
   queue_new(&A.packet_queue);
   queue_new(&A.send_window);
 }

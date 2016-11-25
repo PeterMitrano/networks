@@ -7,8 +7,10 @@
 int corrupt_count = 0;
 
 void debug_print(char *prefix, char *color, struct pkt packet) {
-  printf("(%-3i, %-3i) %s%-17s ", corrupt_count, NumMsgsCorrupt, color, prefix);
-  print_packet(packet);
+  if (TraceLevel == -1 || TraceLevel > 1) {
+    printf("(%-3i, %-3i) %s%-17s ", corrupt_count, NumMsgsCorrupt, color, prefix);
+    print_packet(packet);
+  }
 }
 
 void print_packet(struct pkt packet) {
