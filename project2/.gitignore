@@ -1,4 +1,5 @@
 project2
+queue_test
 *.gdb
 *.swp
 .ycm_extra_conf.py
