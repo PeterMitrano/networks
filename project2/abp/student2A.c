@@ -109,6 +109,7 @@ void A_output(struct msg message) {
  */
 void A_timerinterrupt() {
   // resend the packet
+  A.timer_length *= 2;
   printf(YEL "Timeout\n" RESET);
   debug_print("Resending", GRN, A.unacked_packet);
   tolayer3(AEntity, A.unacked_packet);
@@ -120,9 +121,7 @@ void A_timerinterrupt() {
 /* The following routine will be called once (only) before any other    */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init() {
-  // A small hack. Take the user-specified time between messages
-  // and double it, just to be safe. This gives a decent initial value
-  A.timer_length = 2 * AveTimeBetweenMsgs + 10;
+  A.timer_length = 1000;
   A.successes = 0;
   A.expected_ack = 0;
   A.alternating_bit = 0;

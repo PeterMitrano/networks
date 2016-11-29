@@ -112,6 +112,7 @@ void A_output(struct msg message) {
  * and stoptimer() in the writeup for how the timer is started and stopped.
  */
 void A_timerinterrupt() {
+  A.timer_length *= 2;
   if (TraceLevel == -1 || TraceLevel > 1) {
     printf(YEL "Timeout!\n" RESET);
   }
@@ -133,9 +134,7 @@ void A_timerinterrupt() {
 /* The following routine will be called once (only) before any other    */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init() {
-  // A small hack. Take the user-specified time between messages
-  // and double it, just to be safe. This gives a decent initial value
-  A.timer_length = 100 * AveTimeBetweenMsgs;
+  A.timer_length = 100;
 
   A.nextseqnum = 0;
   A.packet_id = 1000;
