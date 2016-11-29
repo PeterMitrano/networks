@@ -171,7 +171,9 @@ int main( int argc, char *argv[] )     {
         printEntireEventQ();
       }
       else if ((MaxMsgsToSimulate > 3) && ((NumMsgs4To5 + 1) % (MaxMsgsToSimulate / 3)) == 0) {
-        /*printEntireEventQ();*/
+        if (TraceLevel > 0) {
+          printEntireEventQ();
+        }
       }
 
       /* *******************************************************************

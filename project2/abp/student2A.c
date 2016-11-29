@@ -110,7 +110,9 @@ void A_output(struct msg message) {
 void A_timerinterrupt() {
   // resend the packet
   A.timer_length *= 2;
-  printf(YEL "Timeout\n" RESET);
+  if (TraceLevel == -1 || TraceLevel > 1) {
+    printf(YEL "Timeout\n" RESET);
+  }
   debug_print("Resending", GRN, A.unacked_packet);
   tolayer3(AEntity, A.unacked_packet);
 
