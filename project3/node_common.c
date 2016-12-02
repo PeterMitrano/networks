@@ -1,8 +1,11 @@
+#include <algorithm>
 #include <stdio.h>
 
 #include "node_common.h"
 
 void init(int MyNodeNumber, struct Node *node) {
+
+    printf("At time t=%1.3f, init %i called\n", clocktime, MyNodeNumber);
 
   // initialize the diagonal of our cost matrix to 0
   // and initialize our first row/column
@@ -17,7 +20,17 @@ void init(int MyNodeNumber, struct Node *node) {
   node->neighbors = getNeighborCosts(MyNodeNumber);
   for (int i = 0; i < MAX_NODES; i++) {
     node->distance_table[MyNodeNumber][i] = node->neighbors->NodeCosts[i];
+    node->distance_table[i][i] = 0;
   }
+
+  if (TraceLevel == -1) {
+    my_printdt(MyNodeNumber, node->distance_table);
+  }
+  else {
+    printdt(MyNodeNumber, node->neighbors, node->distance_table);
+  }
+
+  update_neighbors(MyNodeNumber, *node);
 }
 
 void update(int MyNodeNumber, struct Node *node, struct RoutePacket *rcvdpkt) {
@@ -39,7 +52,12 @@ void update(int MyNodeNumber, struct Node *node, struct RoutePacket *rcvdpkt) {
     }
   }
 
-  my_printdt(MyNodeNumber, node->distance_table);
+  if (TraceLevel == -1) {
+    my_printdt(MyNodeNumber, node->distance_table);
+  }
+  else {
+    printdt(MyNodeNumber, node->neighbors, node->distance_table);
+  }
 
   if (update) {
     // send update to all neighbors...
@@ -57,10 +75,16 @@ void update_neighbors(int MyNodeNumber, struct Node node) {
     struct RoutePacket pkt;
     pkt.sourceid = MyNodeNumber;
     pkt.destid = i;
+
+    printf("At time t=%1.3f, node %i sends packet to node %i with: { ",
+        clocktime, MyNodeNumber, i);
+
     for (int j = 0; j < MAX_NODES; j++) {
       pkt.mincost[j] = node.distance_table[MyNodeNumber][j];
+      printf("%i ", pkt.mincost[j]);
     }
 
+    printf("}\n");
     toLayer2(pkt);
   }
 }
@@ -94,38 +118,39 @@ void my_printdt(int MyNodeNumber, int distance_table[MAX_NODES][MAX_NODES]) {
 //                 messages from other nodes.
 /////////////////////////////////////////////////////////////////////
 void printdt(int MyNodeNumber, struct NeighborCosts *neighbor,
-		int costs[MAX_NODES][MAX_NODES]) {
-    int i, j;
-    int TotalNodes = neighbor->NodesInNetwork;
-    int NumberOfNeighbors = 0;
-    int Neighbors[MAX_NODES] = {0};
+    int costs[MAX_NODES][MAX_NODES]) {
+  int i, j;
+  int TotalNodes = neighbor->NodesInNetwork;
+  int NumberOfNeighbors = 0;
+  int Neighbors[MAX_NODES] = {0};
 
-    // Determine our neighbors
-    for (i = 0; i < TotalNodes; i++) {
-        if ((neighbor->NodeCosts[i] != INFINITY) && i != MyNodeNumber) {
-            Neighbors[NumberOfNeighbors] = i;
-            NumberOfNeighbors++;
-        }
+  // Determine our neighbors
+  for (i = 0; i < TotalNodes; i++) {
+    if ((neighbor->NodeCosts[i] != INFINITY) && i != MyNodeNumber) {
+      Neighbors[NumberOfNeighbors] = i;
+      NumberOfNeighbors++;
     }
+  }
 
-    // Print the header
-    printf("                via     \n");
-    printf("   D%d |", MyNodeNumber);
-    for (i = 0; i < NumberOfNeighbors; i++)
-        printf("     %d", Neighbors[i]);
-    printf("\n");
-    printf("  ----|-------------------------------\n");
+  // Print the header
+  printf("                via     \n");
+  printf("   D%d |", MyNodeNumber);
+  for (i = 0; i < NumberOfNeighbors; i++)
+    printf("     %d", Neighbors[i]);
+  printf("\n");
+  printf("  ----|-------------------------------\n");
 
-    // For each node, print the cost by travelling thru each of our neighbors
-    for (i = 0; i < TotalNodes; i++)   {
-        if (i != MyNodeNumber)  {
-            printf("dest %d|", i);
-            for (j = 0; j < NumberOfNeighbors; j++)  {
-                    printf("  %4d", costs[i][Neighbors[j]]);
-            }
-            printf("\n");
-        }
+  // For each node, print the cost by travelling thru each of our neighbors
+  for (i = 0; i < TotalNodes; i++)   {
+    if (i != MyNodeNumber)  {
+      printf("dest %d|", i);
+      for (j = 0; j < NumberOfNeighbors; j++)  {
+        int d = costs[MyNodeNumber][i];
+        printf("  %4d", std::min(INFINITY, d));
+      }
+      printf("\n");
     }
-    printf("\n");
+  }
+  printf("\n");
 }    // End of printdt0
 
