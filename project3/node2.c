@@ -1,13 +1,12 @@
 #include "project3.h"
 #include "node_common.h"
 
-struct Node2 {
-  distance_table dt;
-  struct NeighborCosts *neighbor;
-} N2;
+Node N2;
 
 void rtinit2() {
-  N2.neighbor = getNeighborCosts(2);
+  init(2, &N2);
+  printf(MAG "Init 2: " RESET);
+  my_printdt(2, N2.distance_table);
 }
 
 

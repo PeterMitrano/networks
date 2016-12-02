@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdio.h>
+
 #include "project3.h"
 
 #define RED  "\x1B[31m"
@@ -11,12 +13,21 @@
 #define WHT  "\x1B[37m"
 #define RESET  "\x1B[0m"
 
-struct distance_table {
-  int costs[MAX_NODES][MAX_NODES];
-};
 
 extern int TraceLevel;
 extern float clocktime;
 
-void printdt0( int MyNodeNumber, struct NeighborCosts *neighbor,
-    struct distance_table *dtptr);
+struct Node {
+  int distance_table[MAX_NODES][MAX_NODES];
+  struct NeighborCosts *neighbor;
+};
+
+void my_printdt(int MyNodeNumber,
+    int distance_table[MAX_NODES][MAX_NODES]);
+
+void printdt(int MyNodeNumber, struct NeighborCosts *neighbor,
+    int cost[MAX_NODES][MAX_NODES]);
+
+void init(int MyNodeNumber, struct Node *node);
+
+void update_neighbors(int MyNodeNumber, struct Node node);
