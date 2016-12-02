@@ -14,4 +14,5 @@ void rtinit0() {
 
 
 void rtupdate0( struct RoutePacket *rcvdpkt ) {
+  update(0, &N0, rcvdpkt);
 }

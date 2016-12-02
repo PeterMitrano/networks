@@ -2,8 +2,7 @@
 
 #include "node_common.h"
 
-void init(int MyNodeNumber, struct Node *node){
-  node->neighbor = getNeighborCosts(MyNodeNumber);
+void init(int MyNodeNumber, struct Node *node) {
 
   // initialize the diagonal of our cost matrix to 0
   // and initialize our first row/column
@@ -13,21 +12,53 @@ void init(int MyNodeNumber, struct Node *node){
       node->distance_table[i][j] = INFINITY;
     }
   }
+
+  // neighors is only so we know who we're directly connected too
+  node->neighbors = getNeighborCosts(MyNodeNumber);
   for (int i = 0; i < MAX_NODES; i++) {
-    node->distance_table[i][i] = 0;
-    node->distance_table[MyNodeNumber][i] = node->neighbor->NodeCosts[i];
-    node->distance_table[i][MyNodeNumber] = node->neighbor->NodeCosts[i];
+    node->distance_table[MyNodeNumber][i] = node->neighbors->NodeCosts[i];
+  }
+}
+
+void update(int MyNodeNumber, struct Node *node, struct RoutePacket *rcvdpkt) {
+  //save the new routing vector for rcvdpkt->sourceid
+  for (int j = 0; j < MAX_NODES; j++) {
+    node->distance_table[rcvdpkt->sourceid][j] = rcvdpkt->mincost[j];
+  }
+
+  bool update = false;
+  for (int y = 0; y < MAX_NODES; y++) {
+    // compute min{c(x,v) + d(v,y)} for all v in N
+    for (int v = 0; v < MAX_NODES; v++) {
+      int d = node->distance_table[MyNodeNumber][v] + node->distance_table[v][y]; // c(0,v) + D(v,y)
+
+      if (d < node->distance_table[MyNodeNumber][y]) {
+        update = true;
+        node->distance_table[MyNodeNumber][y] = d;
+      }
+    }
+  }
+
+  my_printdt(MyNodeNumber, node->distance_table);
+
+  if (update) {
+    // send update to all neighbors...
+    update_neighbors(MyNodeNumber, *node);
   }
 }
 
 void update_neighbors(int MyNodeNumber, struct Node node) {
   //send update packets to all my neighbors
-  for (int i = 0; i < node.neighbor->NodesInNetwork; i++) {
+  for (int i = 0; i < MAX_NODES; i++) {
+    if (i == MyNodeNumber || node.neighbors->NodeCosts[i] == INFINITY) {
+      continue;
+    }
+
     struct RoutePacket pkt;
     pkt.sourceid = MyNodeNumber;
     pkt.destid = i;
     for (int j = 0; j < MAX_NODES; j++) {
-      pkt.mincost[j] = node.distance_table[0][j];
+      pkt.mincost[j] = node.distance_table[MyNodeNumber][j];
     }
 
     toLayer2(pkt);

@@ -19,7 +19,7 @@ extern float clocktime;
 
 struct Node {
   int distance_table[MAX_NODES][MAX_NODES];
-  struct NeighborCosts *neighbor;
+  struct NeighborCosts *neighbors;
 };
 
 void my_printdt(int MyNodeNumber,
@@ -31,3 +31,5 @@ void printdt(int MyNodeNumber, struct NeighborCosts *neighbor,
 void init(int MyNodeNumber, struct Node *node);
 
 void update_neighbors(int MyNodeNumber, struct Node node);
+
+void update(int MyNodeNumber, struct Node *node, struct RoutePacket *rcvdpkt);
