@@ -30,6 +30,8 @@ void printdt(int MyNodeNumber, struct NeighborCosts *neighbor,
 
 void init(int MyNodeNumber, struct Node *node);
 
+void fini(int MyNodeNumber, struct Node node);
+
 void update_neighbors(int MyNodeNumber, struct Node node);
 
 void update(int MyNodeNumber, struct Node *node, struct RoutePacket *rcvdpkt);

@@ -66,6 +66,7 @@ double  GetRandomNumber();
 void    insertevent( struct event *p );
 void    init();
 void    rtinit0(), rtinit1(), rtinit2(), rtinit3(), rtinit4();
+void    fini0(), fini1(), fini2(), fini3(), fini4();
 //void    rtinit5(), rtinit6(), rtinit7(), rtinit8(), rtinit9();
 void    rtupdate0( struct RoutePacket *), rtupdate1( struct RoutePacket *);
 void    rtupdate2( struct RoutePacket *), rtupdate3( struct RoutePacket *);
@@ -167,6 +168,11 @@ int   main( int argc, char *argv[]) {
 
 terminate:
    printf("\nSimulator terminated at t=%f, no packets in medium\n", clocktime);
+
+   fini0();
+   fini1();
+   fini2();
+   fini3();
    return(0);
 }
 

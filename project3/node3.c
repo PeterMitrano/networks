@@ -12,3 +12,7 @@ void rtupdate3(struct RoutePacket *rcvdpkt) {
   update(3, &N3, rcvdpkt);
 }
 
+
+void fini3() {
+  fini(3, N3);
+}

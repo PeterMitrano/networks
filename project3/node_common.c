@@ -5,7 +5,9 @@
 
 void init(int MyNodeNumber, struct Node *node) {
 
+  if (TraceLevel > 0) {
     printf("At time t=%1.3f, init %i called\n", clocktime, MyNodeNumber);
+  }
 
   // initialize the diagonal of our cost matrix to 0
   // and initialize our first row/column
@@ -20,6 +22,7 @@ void init(int MyNodeNumber, struct Node *node) {
   node->neighbors = getNeighborCosts(MyNodeNumber);
   for (int i = 0; i < MAX_NODES; i++) {
     node->distance_table[MyNodeNumber][i] = node->neighbors->NodeCosts[i];
+    node->distance_table[i][MyNodeNumber] = node->neighbors->NodeCosts[i];
     node->distance_table[i][i] = 0;
   }
 
@@ -33,6 +36,16 @@ void init(int MyNodeNumber, struct Node *node) {
   update_neighbors(MyNodeNumber, *node);
 }
 
+void fini(int MyNodeNumber, struct Node node) {
+  printf(RED "Final Routing Information D%i\n" RESET, MyNodeNumber);
+  if (TraceLevel == -1) {
+    my_printdt(MyNodeNumber, node.distance_table);
+  }
+  else {
+    printdt(MyNodeNumber, node.neighbors, node.distance_table);
+  }
+}
+
 void update(int MyNodeNumber, struct Node *node, struct RoutePacket *rcvdpkt) {
   //save the new routing vector for rcvdpkt->sourceid
   for (int j = 0; j < MAX_NODES; j++) {
@@ -41,9 +54,12 @@ void update(int MyNodeNumber, struct Node *node, struct RoutePacket *rcvdpkt) {
 
   bool update = false;
   for (int y = 0; y < MAX_NODES; y++) {
+
     // compute min{c(x,v) + d(v,y)} for all v in N
     for (int v = 0; v < MAX_NODES; v++) {
-      int d = node->distance_table[MyNodeNumber][v] + node->distance_table[v][y]; // c(0,v) + D(v,y)
+
+      // c(0,v) + D(v,y)
+      int d = node->distance_table[MyNodeNumber][v] + node->distance_table[v][y];
 
       if (d < node->distance_table[MyNodeNumber][y]) {
         update = true;
@@ -76,15 +92,19 @@ void update_neighbors(int MyNodeNumber, struct Node node) {
     pkt.sourceid = MyNodeNumber;
     pkt.destid = i;
 
-    printf("At time t=%1.3f, node %i sends packet to node %i with: { ",
-        clocktime, MyNodeNumber, i);
-
     for (int j = 0; j < MAX_NODES; j++) {
       pkt.mincost[j] = node.distance_table[MyNodeNumber][j];
-      printf("%i ", pkt.mincost[j]);
     }
 
-    printf("}\n");
+    if (TraceLevel > 0) {
+      printf("At time t=%1.3f, node %i sends packet to node %i with: { ",
+        clocktime, MyNodeNumber, i);
+      for (int j = 0; j < MAX_NODES; j++) {
+        printf("%i ", pkt.mincost[j]);
+      }
+      printf("}\n");
+    }
+
     toLayer2(pkt);
   }
 }
@@ -145,8 +165,8 @@ void printdt(int MyNodeNumber, struct NeighborCosts *neighbor,
     if (i != MyNodeNumber)  {
       printf("dest %d|", i);
       for (j = 0; j < NumberOfNeighbors; j++)  {
-        int d = costs[MyNodeNumber][i];
-        printf("  %4d", std::min(INFINITY, d));
+        int d = costs[Neighbors[j]][i] + neighbor->NodeCosts[Neighbors[j]];
+        printf("  %4d", std::min(d, INFINITY));
       }
       printf("\n");
     }

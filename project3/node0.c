@@ -11,3 +11,7 @@ void rtinit0() {
 void rtupdate0( struct RoutePacket *rcvdpkt ) {
   update(0, &N0, rcvdpkt);
 }
+
+void fini0() {
+  fini(0, N0);
+}
