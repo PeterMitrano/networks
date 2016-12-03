@@ -29,7 +29,7 @@ void init(int MyNodeNumber, struct Node *node) {
   if (TraceLevel == -1) {
     my_printdt(MyNodeNumber, node->distance_table);
   }
-  else {
+  else if (TraceLevel > 0) {
     printdt(MyNodeNumber, node->neighbors, node->distance_table);
   }
 
@@ -37,7 +37,7 @@ void init(int MyNodeNumber, struct Node *node) {
 }
 
 void fini(int MyNodeNumber, struct Node node) {
-  printf(RED "Final Routing Information D%i\n" RESET, MyNodeNumber);
+  printf(RED "Final Routing Information For D%i\n" RESET, MyNodeNumber);
   if (TraceLevel == -1) {
     my_printdt(MyNodeNumber, node.distance_table);
   }
@@ -71,7 +71,7 @@ void update(int MyNodeNumber, struct Node *node, struct RoutePacket *rcvdpkt) {
   if (TraceLevel == -1) {
     my_printdt(MyNodeNumber, node->distance_table);
   }
-  else {
+  else if (TraceLevel > 0) {
     printdt(MyNodeNumber, node->neighbors, node->distance_table);
   }
 
